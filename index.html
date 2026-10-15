@@ -1,0 +1,2240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulado Avançado — Sistemas Distribuídos (SD)</title>
+  <meta name="description" content="Simulado interativo avançado de Sistemas Distribuídos baseado no livro de Tanenbaum e Van Steen. Responda, veja o feedback imediato e obtenha diagnóstico de estudo.">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-surface: #1e293b;
+      --bg-card: #1e293b;
+      --bg-card-hover: #273549;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --border: #334155;
+      --correct-bg: rgba(16, 185, 129, 0.15);
+      --correct-border: #10b981;
+      --correct-text: #34d399;
+      --wrong-bg: rgba(239, 68, 68, 0.15);
+      --wrong-border: #ef4444;
+      --wrong-text: #f87171;
+      --card-radius: 10px;
+      --sidebar-width: 330px;
+      --transition: all 0.25s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* =========================================
+       SIDEBAR ESQUERDA (COLUNA DE NAVEGAÇÃO)
+       ========================================= */
+    #sidebar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+      border-right: 1px solid var(--border);
+      height: 100vh;
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+    }
+
+    /* Estado Minimizada da Sidebar */
+    body.sidebar-collapsed #sidebar {
+      margin-left: calc(-1 * var(--sidebar-width));
+    }
+
+    .sidebar-header {
+      padding: 20px 18px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .sidebar-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      line-height: 1.25;
+      background: linear-gradient(to right, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .sidebar-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+
+    .close-sidebar-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      transition: var(--transition);
+      flex-shrink: 0;
+    }
+    .close-sidebar-btn:hover {
+      background: #334155;
+      color: #fff;
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px;
+    }
+
+    /* Scrollbar personalizada */
+    .sidebar-content::-webkit-scrollbar {
+      width: 5px;
+    }
+    .sidebar-content::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+
+    .sidebar-section-title {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #94a3b8;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Stats Grid na Sidebar */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .stat-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      text-align: center;
+    }
+    .stat-card .val {
+      font-size: 1.25rem;
+      font-weight: 800;
+      line-height: 1.1;
+      color: #fff;
+    }
+    .stat-card .lbl {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background-color: #334155;
+      border-radius: 3px;
+      margin-bottom: 18px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #38bdf8, #10b981);
+      transition: width 0.3s ease;
+    }
+
+    /* Action Buttons na Sidebar */
+    .sidebar-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-bottom: 20px;
+    }
+
+    .side-btn {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 7px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      text-align: left;
+    }
+    .side-btn.primary {
+      background: #2563eb;
+      color: #fff;
+    }
+    .side-btn.primary:hover {
+      background: #1d4ed8;
+    }
+    .side-btn.secondary {
+      background: rgba(255,255,255,0.06);
+      color: #e2e8f0;
+      border: 1px solid var(--border);
+    }
+    .side-btn.secondary:hover {
+      background: #334155;
+      color: #fff;
+    }
+    .side-btn.warning {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .side-btn.warning:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* Filtros verticais */
+    .filter-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .filter-item {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #94a3b8;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      text-align: left;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .filter-item:hover {
+      background: rgba(255,255,255,0.04);
+      color: #fff;
+    }
+    .filter-item.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* =========================================
+       ÁREA PRINCIPAL DE CONTEÚDO (DIREITA)
+       ========================================= */
+    #main-layout {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    /* Top Bar Ultrafina (Sticky) */
+    .slim-topbar {
+      position: sticky;
+      top: 0;
+      height: 48px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 500;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .toggle-sidebar-btn {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 5px 11px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition);
+    }
+    .toggle-sidebar-btn:hover {
+      background: #334155;
+      border-color: var(--accent);
+    }
+
+    .topbar-stats {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .topbar-chip {
+      background: rgba(255,255,255,0.05);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .main-scroll-container {
+      max-width: 860px;
+      width: 100%;
+      margin: 25px auto;
+      padding: 0 20px 80px;
+    }
+
+    /* Question Card */
+    .question-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 22px;
+      margin-bottom: 22px;
+      transition: var(--transition);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+
+    .question-card.answered {
+      border-left: 5px solid #64748b;
+    }
+    .question-card.answered.correct-card {
+      border-left: 5px solid var(--correct-border);
+    }
+    .question-card.answered.wrong-card {
+      border-left: 5px solid var(--wrong-border);
+    }
+
+    .q-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 8px;
+    }
+
+    .q-number {
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 2px 7px;
+      border-radius: 5px;
+    }
+
+    .q-category {
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      background: rgba(255,255,255,0.06);
+      padding: 2px 9px;
+      border-radius: 10px;
+    }
+
+    .q-topic {
+      font-size: 0.82rem;
+      color: #94a3b8;
+      font-style: italic;
+      width: 100%;
+    }
+
+    .q-text {
+      font-size: 1.02rem;
+      font-weight: 500;
+      line-height: 1.6;
+      margin-bottom: 18px;
+      color: #f1f5f9;
+      white-space: pre-line;
+    }
+
+    /* Options */
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .option-item {
+      display: flex;
+      align-items: flex-start;
+      padding: 11px 15px;
+      background-color: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 0.94rem;
+      text-align: left;
+      color: #e2e8f0;
+      user-select: none;
+    }
+
+    .option-item:hover:not(.locked) {
+      background-color: var(--bg-card-hover);
+      border-color: var(--accent);
+      transform: translateX(3px);
+    }
+
+    .option-letter {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 25px;
+      height: 25px;
+      min-width: 25px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      font-weight: bold;
+      font-size: 0.82rem;
+      margin-right: 12px;
+      margin-top: 1px;
+    }
+
+    /* Status classes for options */
+    .option-item.correct {
+      background-color: var(--correct-bg) !important;
+      border-color: var(--correct-border) !important;
+      color: var(--correct-text) !important;
+      font-weight: 600;
+    }
+    .option-item.correct .option-letter {
+      background-color: var(--correct-border);
+      color: #0f172a;
+    }
+
+    .option-item.wrong {
+      background-color: var(--wrong-bg) !important;
+      border-color: var(--wrong-border) !important;
+      color: var(--wrong-text) !important;
+      font-weight: 600;
+    }
+    .option-item.wrong .option-letter {
+      background-color: var(--wrong-border);
+      color: #fff;
+    }
+
+    .option-item.locked {
+      cursor: default;
+    }
+
+    /* Explanation Box */
+    .explanation-box {
+      margin-top: 16px;
+      padding: 16px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .explanation-box.show {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .exp-badge {
+      display: inline-block;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 3px 9px;
+      border-radius: 5px;
+      margin-bottom: 9px;
+    }
+    .exp-badge.success {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid #10b981;
+    }
+    .exp-badge.danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid #ef4444;
+    }
+
+    .exp-section-title {
+      font-weight: 700;
+      color: #cbd5e1;
+      font-size: 0.88rem;
+      text-transform: uppercase;
+      margin-top: 8px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .exp-text {
+      font-size: 0.91rem;
+      color: #e2e8f0;
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+
+    .distractors-list {
+      list-style-type: disc;
+      padding-left: 20px;
+      margin-top: 6px;
+    }
+    .distractors-list li {
+      font-size: 0.86rem;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+
+    /* Results Diagnostic Panel */
+    #results-section {
+      display: none;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 26px;
+      margin-bottom: 26px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      animation: fadeIn 0.4s ease;
+    }
+
+    .results-header {
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 18px;
+      margin-bottom: 20px;
+    }
+
+    .results-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .score-circle {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.1);
+      border: 3px solid var(--accent);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 14px auto;
+    }
+    .score-circle .score-num {
+      font-size: 1.85rem;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+    }
+    .score-circle .score-total {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .badge-evaluation {
+      display: inline-block;
+      padding: 5px 16px;
+      border-radius: 20px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+    .badge-evaluation.high {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid #10b981;
+    }
+    .badge-evaluation.medium {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid #f59e0b;
+    }
+    .badge-evaluation.low {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid #ef4444;
+    }
+
+    .diagnosis-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 14px;
+      margin: 20px 0;
+    }
+
+    .diag-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .diag-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #f8fafc;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .diag-bar-bg {
+      height: 7px;
+      background: #334155;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .diag-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .diag-recommendation {
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+    .diag-recommendation strong {
+      color: var(--accent);
+    }
+
+    .study-plan-box {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-left: 4px solid #ef4444;
+      border-radius: 8px;
+      padding: 18px;
+      margin-top: 20px;
+    }
+    .study-plan-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #f87171;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Mobile Drawer Overlay */
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(3px);
+      z-index: 999;
+    }
+
+    @media (max-width: 900px) {
+      #sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        margin-left: 0;
+        transform: translateX(-100%);
+      }
+      body.sidebar-open #sidebar {
+        transform: translateX(0);
+      }
+      body.sidebar-open .sidebar-backdrop {
+        display: block;
+      }
+      .topbar-stats {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Backdrop para mobile quando a barra lateral estiver aberta -->
+  <div class="sidebar-backdrop" onclick="closeSidebarMobile()"></div>
+
+  <!-- =========================================
+       SIDEBAR ESQUERDA (MINIMIZÁVEL / MAXIMIZÁVEL)
+       ========================================= -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div>
+        <div class="sidebar-title">Simulado SD</div>
+        <div class="sidebar-subtitle">Tanenbaum &amp; van Steen (4ª Ed.)</div>
+      </div>
+      <button class="close-sidebar-btn" title="Minimizar barra lateral" onclick="toggleSidebar()">
+        ◀
+      </button>
+    </div>
+
+    <div class="sidebar-content">
+      <div class="sidebar-section-title">
+        <span>Seu Desempenho</span>
+        <span id="side-percent" style="color: var(--accent); font-size: 0.8rem;">0%</span>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="val" id="side-stat-answered">0</div>
+          <div class="lbl">Respondidas</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="side-stat-total">44</div>
+          <div class="lbl">Total</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="side-stat-correct" style="color: #34d399;">0</div>
+          <div class="lbl">Acertos</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="side-stat-wrong" style="color: #f87171;">0</div>
+          <div class="lbl">Erros</div>
+        </div>
+      </div>
+
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+
+      <div class="sidebar-section-title">Ações Rápidas</div>
+      <div class="sidebar-actions">
+        <button class="side-btn primary" onclick="scrollToDiagnosis()">
+          📊 Ver Diagnóstico Geral
+        </button>
+        <button class="side-btn warning" onclick="filterOnlyWrong()">
+          ⚠️ Refazer Erradas (<span id="side-wrong-count">0</span>)
+        </button>
+        <button class="side-btn secondary" onclick="resetQuiz()">
+          🔄 Reiniciar Simulado
+        </button>
+      </div>
+
+      <div class="sidebar-section-title">
+        <span>Filtrar por Tópico</span>
+      </div>
+      <div class="filter-list" id="filter-list">
+        <button class="filter-item active" onclick="applyCategoryFilter('all')">
+          <span>📚 Todas as Questões</span>
+          <span style="font-size: 0.75rem; opacity: 0.7;">44</span>
+        </button>
+        <button class="filter-item" onclick="applyCategoryFilter('Fundamentos & Modelos Temporais')">
+          <span>🌐 Fundamentos &amp; Modelos</span>
+          <span style="font-size: 0.75rem; opacity: 0.7;">6</span>
+        </button>
+        <button class="filter-item" onclick="applyCategoryFilter('Taxonomia & Paradigmas')">
+          <span>🏗️ Taxonomia &amp; Nuvem</span>
+          <span style="font-size: 0.75rem; opacity: 0.7;">5</span>
+        </button>
+        <button class="filter-item" onclick="applyCategoryFilter('Arquiteturas de Software')">
+          <span>🏛️ Arquiteturas &amp; P2P</span>
+          <span style="font-size: 0.75rem; opacity: 0.7;">6</span>
+        </button>
+        <button class="filter-item" onclick="applyCategoryFilter('Processos, Threads & Servidores')">
+          <span>⚙️ Processos &amp; Servidores</span>
+          <span style="font-size: 0.75rem; opacity: 0.7;">6</span>
+        </button>
+        <button class="filter-item" onclick="applyCategoryFilter('Comunicação, RPC & Mensageria')">
+          <span>📡 Comunicação &amp; Kafka</span>
+          <span style="font-size: 0.75rem; opacity: 0.7;">7</span>
+        </button>
+        <button class="filter-item" onclick="applyCategoryFilter('Multicast & Algoritmos Epidêmicos')">
+          <span>📢 Multicast &amp; Gossip</span>
+          <span style="font-size: 0.75rem; opacity: 0.7;">5</span>
+        </button>
+        <button class="filter-item" onclick="applyCategoryFilter('Nomenclatura & DNS')">
+          <span>🏷️ Nomenclatura &amp; DNS</span>
+          <span style="font-size: 0.75rem; opacity: 0.7;">4</span>
+        </button>
+        <button class="filter-item" onclick="applyCategoryFilter('DHT Chord & Teorema CAP')">
+          <span>🔄 DHT Chord &amp; CAP</span>
+          <span style="font-size: 0.75rem; opacity: 0.7;">5</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- =========================================
+       ÁREA PRINCIPAL (QUESTÕES E DIAGNÓSTICO)
+       ========================================= -->
+  <div id="main-layout">
+    <!-- Topbar Ultrafina não intrusiva -->
+    <header class="slim-topbar">
+      <div class="topbar-left">
+        <button class="toggle-sidebar-btn" id="open-sidebar-btn" onclick="toggleSidebar()">
+          ☰ Painel &amp; Filtros
+        </button>
+        <span style="font-size: 0.88rem; font-weight: 700; color: #fff;">
+          Simulado Avançado SD
+        </span>
+      </div>
+
+      <div class="topbar-stats">
+        <span class="topbar-chip">Progresso: <strong id="top-answered" style="color: #38bdf8;">0/44</strong></span>
+        <span class="topbar-chip">Acertos: <strong id="top-correct" style="color: #34d399;">0</strong></span>
+        <span class="topbar-chip">Erros: <strong id="top-wrong" style="color: #f87171;">0</strong></span>
+        <button class="side-btn primary" style="width: auto; padding: 4px 10px; font-size: 0.78rem;" onclick="scrollToDiagnosis()">
+          Diagnóstico
+        </button>
+      </div>
+    </header>
+
+    <div class="main-scroll-container">
+      <!-- Painel de Diagnóstico (Oculto inicialmente) -->
+      <section id="results-section">
+        <div class="results-header">
+          <div class="results-title">Diagnóstico de Aprendizagem</div>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Análise estatística de proficiência e domínio conceitual</p>
+          
+          <div class="score-circle">
+            <span class="score-num" id="res-score">0</span>
+            <span class="score-total" id="res-total">/ 44</span>
+          </div>
+          <div id="res-badge" class="badge-evaluation">Avaliando...</div>
+          <p id="res-desc" style="margin-top: 10px; font-size: 0.92rem; color: #cbd5e1;"></p>
+        </div>
+
+        <h3 style="color: #fff; margin-bottom: 12px; font-size: 1.05rem;">Desempenho por Domínio de Conhecimento:</h3>
+        <div class="diagnosis-grid" id="diagnosis-grid">
+          <!-- Gerado dinamicamente -->
+        </div>
+
+        <div class="study-plan-box" id="study-plan-container">
+          <div class="study-plan-title">
+            <span>🎯 Plano de Estudos Personalizado (Tópicos para Revisão):</span>
+          </div>
+          <div id="study-plan-list">
+            <!-- Gerado dinamicamente -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Container de Questões -->
+      <div id="questions-container">
+        <!-- Injetado dinamicamente via JS -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Embedded Questions Database
+    const QUESTIONS = [
+  {
+    "id": 1,
+    "category": "Fundamentos & Modelos Temporais",
+    "topic": "Ausência de Relógio Global e Ordenação de Lamport",
+    "question": "Considere dois processos autônomos, P1 e P2, executando em computadores geograficamente separados em um sistema distribuído assíncrono. P1 registra localmente um evento 'a' no instante físico 14:00:00.100 (segundo seu relógio local) e envia uma mensagem m para P2. P2 recebe m e registra o evento 'b' no instante físico 14:00:00.090 (segundo seu relógio local). Com base nos fundamentos teóricos de sincronização e relógios lógicos de Lamport, assinale a afirmação correta:",
+    "options": [
+      "O evento 'b' causou o evento 'a', visto que seu carimbo de tempo físico é estritamente menor (14:00:00.090 < 14:00:00.100).",
+      "Houve uma violação de causalidade física e os processos devem abortar a execução, pois uma mensagem não pode chegar ao destino antes de ter sido enviada na linha do tempo.",
+      "A aparente inversão temporal decorre da deriva de relógio (clock drift) e dessincronização física; segundo a relação 'aconteceu-antes' (happened-before) de Lamport, temos a -> b obrigatoriamente, e o carimbo de tempo lógico C(b) será necessariamente maior que C(a).",
+      "Para restabelecer a consistência, P1 e P2 devem executar o protocolo NTP em tempo real para retroceder o relógio de P1 forçosamente, congelando a execução de P1.",
+      "Em sistemas distribuídos assíncronos, não é possível estabelecer nenhuma relação causal entre 'a' e 'b', permanecendo eventos concorrentes (a || b)."
+    ],
+    "answer": 2,
+    "explanation": "Em sistemas distribuídos, relógios físicos sofrem deriva (clock drift) e não proveem uma base temporal unificada confiável. Como P1 enviou a mensagem m no evento 'a' e P2 recebeu m no evento 'b', a regra do relógio lógico de Lamport estabelece que a -> b (o envio precede a recepção). Pela regra de atualização lógica de Lamport, P2 ajustará seu relógio para C(b) = max(C_local, C(m)) + 1, garantindo C(a) < C(b), independentemente da discrepância dos relógios de parede físicos.",
+    "distractors": [
+      "Incorreta: O carimbo de parede físico local não define causalidade em sistemas distribuídos devido ao clock drift.",
+      "Incorreta: Não há violação de causalidade física real, apenas dessincronização dos osciladores de cristal locais.",
+      "Incorreta: Relógios físicos nunca devem ser retrocedidos bruscamente (risco de quebrar logs e arquivos temporais); aplica-se 'slewing' gradual.",
+      "Incorreta: O envio e a recepção de uma mensagem geram relação causal estrita (a -> b); não são eventos concorrentes."
+    ]
+  },
+  {
+    "id": 2,
+    "category": "Fundamentos & Modelos Temporais",
+    "topic": "Transparência de Distribuição (Relocação vs. Migração)",
+    "question": "Um arquiteto de software projeta um sistema de computação em nuvem onde contêineres e componentes de banco de dados podem ser transferidos entre diferentes servidores físicos. Analise as duas situações a seguir:\nI. Um componente é movido de um nó para outro enquanto está inativo, e as aplicações clientes continuam acessando-o pelo mesmo identificador lógico sem perceber a alteração.\nII. Um componente é transferido entre servidores enquanto atende requisições ativas de clientes, de forma que conexões em andamento não são interrompidas nem reiniciadas.\nAssinale a alternativa que classifica correta e respectivamente as formas de transparência descritas segundo a taxonomia de Tanenbaum e a norma ISO/RM-ODP:",
+    "options": [
+      "I: Transparência de Localização; II: Transparência de Acesso.",
+      "I: Transparência de Migração; II: Transparência de Relocação.",
+      "I: Transparência de Relocação; II: Transparência de Migração.",
+      "I: Transparência de Replicação; II: Transparência de Persistência.",
+      "I: Transparência de Concorrência; II: Transparência de Falha."
+    ],
+    "answer": 1,
+    "explanation": "A literatura formal (Tanenbaum & van Steen, RM-ODP) distingue rigorosamente Transparência de Migração e de Relocação. Transparência de Migração esconde que um recurso pode mover-se de uma máquina para outra entre usos. Transparência de Relocação é uma propriedade mais forte e complexa: esconde que um recurso pode ser movido entre nós *durante o próprio uso e processamento de requisições ativas* sem que o cliente sofra desconexão ou falha.",
+    "distractors": [
+      "Incorreta: Transparência de acesso esconde diferenças de formato de dados/hardware, não mobilidade.",
+      "Incorreta: Inverteu os conceitos de migração (estática entre usos) e relocação (dinâmica durante a operação).",
+      "Incorreta: Replicação trata de múltiplas cópias redundantes e persistência trata de armazenamento volátil vs. disco.",
+      "Incorreta: Concorrência trata de múltiplos acessos simultâneos ao mesmo recurso e falha mascara interrupções."
+    ]
+  },
+  {
+    "id": 3,
+    "category": "Fundamentos & Modelos Temporais",
+    "topic": "Modelos Temporais e o Teorema FLP",
+    "question": "O Teorema FLP (Fischer, Lynch e Paterson, 1985) é um dos resultados teóricos mais fundamentais da ciência da computação distribuída. Qual é a conclusão formal desse teorema e qual modelo temporal ele pressupõe?",
+    "options": [
+      "Em um sistema distribuído síncrono, é impossível garantir que todos os nós alcancem consenso se houver mais de 33% de nós com falhas bizantinas.",
+      "Em um sistema distribuído assíncrono, nenhum algoritmo determinístico de consenso pode garantir vivacidade (liveness) na presença de mesmo uma única falha não anunciada por parada (crash failure).",
+      "Em um sistema parcialmente síncrono, o consenso é matematicamente inviável se o atraso das mensagens ultrapassar o tempo de estabilização global (GST).",
+      "Em qualquer sistema distribuído, o consenso só é alcançável se todos os nós possuírem relógios físicos sincronizados com erro inferior a 1 microssegundo.",
+      "Apenas protocolos probabilísticos baseados em prova de trabalho (Proof of Work) são capazes de resolver consenso sob o modelo temporal síncrono."
+    ],
+    "answer": 1,
+    "explanation": "O Teorema FLP provou matematicamente que, em uma rede puramente assíncrona (onde não há limites conhecidos para atrasos de rede ou tempo de processamento), é impossível construir um algoritmo determinístico que garanta simultaneamente Acordo, Validade e Término (vivacidade) se mesmo um único nó puder falhar por parada. Isso decorre do fato de que, no modelo assíncrono, um nó não consegue distinguir se um parceiro falhou ou se está apenas operando de maneira extremamente lenta.",
+    "distractors": [
+      "Incorreta: Esse limite de 33% (3f + 1) refere-se ao problema dos Generais Bizantinos de Lamport, não ao teorema FLP.",
+      "Incorreta: Sistemas parcialmente síncronos (Dwork, Lynch e Stockmeyer) *permitem* consenso após o GST.",
+      "Incorreta: Relógios físicos precisos não são premissa do modelo de consenso assíncrono nem anulam o teorema FLP.",
+      "Incorreta: Proof of Work é um mecanismo probabilístico em redes abertas; em sistemas síncronos fechados, algoritmos clássicos resolvem consenso deterministicamente."
+    ]
+  },
+  {
+    "id": 4,
+    "category": "Fundamentos & Modelos Temporais",
+    "topic": "As 8 Falácias da Computação Distribuída (Peter Deutsch)",
+    "question": "Um desenvolvedor projetou uma arquitetura de microsserviços onde o serviço de checkout faz 15 chamadas HTTP síncronas sequenciais para outros serviços internos a cada compra. Ele argumentou que, como todos os contêineres estão no mesmo cluster Kubernetes em nuvem, 'a comunicação é praticamente instantânea, nunca haverá perda de pacotes e o tráfego não tem custo'. Quais falácias de Peter Deutsch foram explicitamente ignoradas pelo desenvolvedor?",
+    "options": [
+      "Falácia 4 (A rede é segura) e Falácia 6 (Existe apenas um administrador).",
+      "Falácia 1 (A rede é confiável), Falácia 2 (A latência é zero) e Falácia 7 (O custo de transporte é zero).",
+      "Falácia 3 (A largura de banda é infinita) e Falácia 8 (A rede é homogênea) apenas.",
+      "Falácia 5 (A topologia não muda) exclusivamente.",
+      "Nenhuma falácia foi violada, pois redes definidas por software (SDN) em nuvem garantem latência zero e confiabilidade absoluta de hardware."
+    ],
+    "answer": 1,
+    "explanation": "Ao assumir que nunca haverá perda de pacotes, o desenvolvedor incorre na Falácia 1 ('A rede é confiável'). Ao assumir que a comunicação é instantânea (desprezando 15 round-trips sequenciais de rede), incorre na Falácia 2 ('A latência é zero'). Ao assumir que o tráfego não acarreta despesas de infraestrutura ou consumo de enlaces virtuais tarifados na nuvem, incorre na Falácia 7 ('O custo de transporte é zero').",
+    "distractors": [
+      "Incorreta: Não foram citadas questões de segurança perimetral (Falácia 4) ou governança multi-administrativa (Falácia 6).",
+      "Incorreta: Embora largura de banda seja relevante, as falácias mais flagrantes na fala foram a confiabilidade, a latência nula e o custo nulo.",
+      "Incorreta: A Falácia 5 trata de mudanças de roteamento/IPs dinâmicos, que não foram o foco da justificativa errônea do desenvolvedor.",
+      "Incorreta: Nenhuma rede física ou SDN possui latência zero ou confiabilidade de 100%."
+    ]
+  },
+  {
+    "id": 5,
+    "category": "Fundamentos & Modelos Temporais",
+    "topic": "Técnicas de Escalabilidade e o Trade-off de Consistência",
+    "question": "Em sistemas distribuídos de grande escala, técnicas de replicação e cacheamento são extensivamente aplicadas para mitigar problemas de escalabilidade de tamanho e geográfica. No entanto, segundo Tanenbaum e van Steen, a aplicação dessas técnicas introduz um severo dilema de engenharia. Qual é esse dilema?",
+    "options": [
+      "A replicação exige a compra contínua de hardware idêntico, violando a escalabilidade administrativa.",
+      "Manter múltiplas cópias de dados em cache melhora o tempo de leitura, mas introduz o problema crítico da inconsistência de dados quando ocorrem atualizações, exigindo protocolos de sincronização caros que degradam o desempenho.",
+      "O cacheamento em navegadores viola a transparência de acesso e impossibilita o uso de conexões TLS/HTTPS.",
+      "A replicação de servidores só é viável em redes locais homogêneas, sendo matematicamente impossível em redes WAN.",
+      "O uso de cache obriga que todo o sistema passe a operar sob o modelo temporal síncrono estrito."
+    ],
+    "answer": 1,
+    "explanation": "Conforme sintetizado formalmente por Tanenbaum: 'Aplicar técnicas para obtenção de escalabilidade é fácil, exceto por manter múltiplas cópias (em cache ou replicadas), o que leva a inconsistências: a modificação em uma cópia a torna diferente das demais. Para manter todas as cópias sincronizadas instantaneamente, exigem-se protocolos de consenso e travamento que anulam os ganhos de escalabilidade.'",
+    "distractors": [
+      "Incorreta: Replicação não exige hardware idêntico; sistemas modernos replicam dados em nós heterogêneos.",
+      "Incorreta: Cacheamento não viola transparência de acesso nem impede criptografia TLS.",
+      "Incorreta: CDNs e bancos de dados replicados operam rotineiramente sobre redes WAN continentais.",
+      "Incorreta: Cache não impõe sincronismo estrito; pelo contrário, é a principal ferramenta para operar sob modelos fracamente consistentes/assíncronos."
+    ]
+  },
+  {
+    "id": 6,
+    "category": "Fundamentos & Modelos Temporais",
+    "topic": "Redes de Overlay: Estruturadas vs. Não-Estruturadas",
+    "question": "Sobre as redes de sobreposição (overlay networks), assinale a afirmativa tecnicamente correta que distingue redes estruturadas de não-estruturadas:",
+    "options": [
+      "Em redes estruturadas, os nós formam conexões lógicas aleatórias e as buscas dependem invariavelmente de inundação (flooding) com saltos delimitados por TTL.",
+      "Em redes não-estruturadas, a topologia obedece a um grafo geométrico rígido (como um anel lógico ou hipercubo) que garante localização determinística de dados em O(log N).",
+      "Redes estruturadas organizam os nós segundo uma topologia matemática determinística e utilizam funções de dispersão para associar dados a nós específicos (DHTs), provendo limites estritos de busca, enquanto redes não-estruturadas formam grafos aleatórios e são altamente resilientes ao churn (entrada/saída frequente de nós).",
+      "As redes de sobreposição substituem os protocolos TCP e IP nas camadas 3 e 4 do modelo OSI, dispensando roteamento físico.",
+      "Redes estruturadas são intrinsecamente vulneráveis a falhas porque a queda de qualquer nó individual paralisa permanentemente todo o anel de busca sem possibilidade de recuperação."
+    ],
+    "answer": 2,
+    "explanation": "A distinção canônica é: redes estruturadas (ex.: Chord, Pastry) organizam nós e chaves através de regras determinísticas (DHTs), garantindo busca com cotas matemáticas como O(log N); já redes não-estruturadas (ex.: Gnutella v0.4) formam topologias aleatórias, toleram alta volatilidade de nós (churn), mas dependem de buscas por flooding ou random walk sem garantias estritas de localização.",
+    "distractors": [
+      "Incorreta: Conexões aleatórias e flooding são características de redes *não-estruturadas*.",
+      "Incorreta: Grafos geométricos e O(log N) são características de redes *estruturadas*.",
+      "Incorreta: Redes de sobreposição operam na camada de aplicação (camada 7), rodando *sobre* a pilha TCP/IP subjacente.",
+      "Incorreta: Redes estruturadas utilizam algoritmos de estabilização contínua e listas de sucessores para tolerar falhas de nós."
+    ]
+  },
+  {
+    "id": 7,
+    "category": "Taxonomia & Paradigmas",
+    "topic": "Computação de Alto Desempenho: Clusters vs. Grades (Grids)",
+    "question": "Em relação aos sistemas distribuídos voltados para computação de alto desempenho (HPDC), assinale a alternativa que compara com precisão Aglomerados (Clusters) e Grades Computacionais (Grids):",
+    "options": [
+      "Clusters operam sobre redes WAN conectando computadores geograficamente dispersos com múltiplos sistemas operacionais, enquanto Grids exigem computadores idênticos em uma única LAN.",
+      "Clusters caracterizam-se por nós homogêneos (mesmo hardware e SO), interconectados por redes locais de altíssima velocidade sob um único domínio administrativo; Grids caracterizam-se por heterogeneidade de hardware/SO, dispersão geográfica sobre WAN e federação entre múltiplos domínios administrativos independentes.",
+      "Grids utilizam exclusivamente processadores quânticos e dispensam middleware, enquanto Clusters dependem exclusivamente do protocolo HTTP/REST.",
+      "Clusters não possuem nós gerenciadores nem escalonadores de tarefas (schedulers), operando de forma 100% peer-to-peer sem coordenação mestre.",
+      "Grids foram substituídas por completo pelos clusters na década de 1990 devido à impossibilidade de garantir segurança entre organizações distintas."
+    ],
+    "answer": 1,
+    "explanation": "Conforme formulado por Foster e Tanenbaum: Clusters são homogêneos, locais (LAN/InfiniBand) e operam sob controle administrativo único (um cluster departamental ou de laboratório). Grids são federações de recursos computacionais geograficamente espalhados, fortemente heterogêneos e pertencentes a diferentes organizações com políticas próprias (ex.: CERN WLCG).",
+    "distractors": [
+      "Incorreta: Inverteu completamente as definições de cluster e grid.",
+      "Incorreta: Afirmações absurdas sobre computação quântica e exclusividade de HTTP em clusters de alto desempenho (que usam MPI/InfiniBand).",
+      "Incorreta: Clusters dependem tipicamente de nós mestres gerenciadores com escalonadores de jobs (Slurm, PBS, Condor).",
+      "Incorreta: Grids amadureceram nos anos 2000 (ex.: processamento do LHC) e evoluíram conceitualmente para a computação em nuvem moderna."
+    ]
+  },
+  {
+    "id": 8,
+    "category": "Taxonomia & Paradigmas",
+    "topic": "Transações ACID Distribuídas e o Protocolo Two-Phase Commit (2PC)",
+    "question": "Em sistemas de informação distribuídos, o protocolo de Confirmação em Duas Fases (Two-Phase Commit — 2PC) é amplamente empregado por Monitores de Transação (TP Monitors) para garantir a atomicidade de transações sobre múltiplos bancos de dados. Qual é a principal vulnerabilidade arquitetural do protocolo 2PC que limita sua escalabilidade em larga escala?",
+    "options": [
+      "O 2PC não suporta transações que envolvam mais de dois servidores de banco de dados simultaneamente.",
+      "O 2PC é um protocolo estritamente não-bloqueante que aborta transações caso ocorra mesmo uma pequena flutuação de latência de 1 milissegundo.",
+      "O 2PC é um protocolo bloqueante (blocking protocol): se o coordenador falhar permanentemente após a fase de preparação (Prepare), os participantes que votaram 'Sim' ficam indefinidamente bloqueados segurando travas de recursos, sem poder decidir autonomamente se efetivam ou revertem a transação.",
+      "O 2PC viola compulsoriamente a propriedade de Isolamento das transações ACID ao permitir leituras sujas durante a fase de votação.",
+      "O 2PC exige que todos os bancos de dados utilizem exatamente a mesma linguagem SQL e o mesmo dialeto de banco relacional."
+    ],
+    "answer": 2,
+    "explanation": "A limitação teórica mais notória do 2PC reside no seu caráter bloqueante. Na Fase 1 (Prepare), os participantes preparam os dados e votam 'Sim', prometendo honrar o commit. Se o coordenador cair antes de emitir a decisão global na Fase 2, os participantes não podem dar rollback (pois outros nós podem já ter recebido commit) nem podem dar commit (pois alguém pode ter votado não). Eles ficam bloqueados mantendo travas abertas, o que estrangula a disponibilidade.",
+    "distractors": [
+      "Incorreta: O 2PC coordena qualquer número arbitrário de bancos e recursos participantes.",
+      "Incorreta: O 2PC é justamente criticado por ser bloqueante, e não 'estritamente não-bloqueante'.",
+      "Incorreta: O 2PC é projetado exatamente para preservar as propriedades ACID, mantendo o isolamento serializável via travas.",
+      "Incorreta: O 2PC é um protocolo de consenso/coordenação agnóstico a dialetos SQL (opera via padrão X/Open XA)."
+    ]
+  },
+  {
+    "id": 9,
+    "category": "Taxonomia & Paradigmas",
+    "topic": "Computação Ubíqua e Sensibilidade ao Contexto",
+    "question": "A Computação Ubíqua (ou Pervasiva), idealizada pioneiramente por Mark Weiser, baseia-se na integração imperceptível de elementos computacionais ao cotidiano dos indivíduos. Qual dos seguintes cenários melhor exemplifica a propriedade de Sensibilidade ao Contexto (Context-Awareness) requerida por esses sistemas?",
+    "options": [
+      "Um usuário acessa uma página de comércio eletrônico, digita seu login e senha, seleciona itens em um catálogo e clica no botão finalizar compra.",
+      "Um cluster de computadores de alto desempenho reinicia um nó automaticamente após detectar temperatura excessiva em um de seus dissipadores.",
+      "Um sistema hospitalar inteligente detecta automaticamente que um médico entrou no leito de um paciente específico (via beacons BLE e sensores de presença), exibe o prontuário daquele paciente no tablet do médico e ajusta a iluminação ambiente e os alertas sonoros sem intervenção manual.",
+      "Um servidor de arquivos corporativo realiza cópia de segurança em fita magnética todos os domingos às 03:00 da madrugada.",
+      "Um compilador C++ gera código de máquina otimizado para registradores de 64 bits em vez de 32 bits."
+    ],
+    "answer": 2,
+    "explanation": "Sensibilidade ao Contexto (Context-Awareness) significa que o sistema monitora ativamente grandezas do ambiente físico (localização de pessoas, proximidade, iluminação, estado de saúde, ruído) e adapta autonomamente seus serviços e interfaces sem exigir comandos explícitos de teclado ou cliques do usuário, conforme ilustrado no cenário do hospital inteligente.",
+    "distractors": [
+      "Incorreta: Esse é o modelo clássico de interação explícita humana via interface Web tradicional.",
+      "Incorreta: Trata-se de mecanismo operacional interno de resiliência de hardware, não sensibilidade a contexto humano/ambiente pervasivo.",
+      "Incorreta: É um agendamento estático de rotina em lote (batch cron job).",
+      "Incorreta: É uma otimização puramente estática de compilação de software local."
+    ]
+  },
+  {
+    "id": 10,
+    "category": "Taxonomia & Paradigmas",
+    "topic": "Redes de Sensores Sem Fio (WSN) e Restrições de Energia",
+    "question": "Em uma Rede de Sensores Sem Fio (Wireless Sensor Network — WSN) implantada para monitoramento ambiental em uma floresta tropical, milhares de nós com microcontroladores simples e baterias não recarregáveis coletam temperatura e umidade. Qual é o princípio fundamental de projeto de software para maximizar a vida útil dessa rede?",
+    "options": [
+      "Configurar cada nó sensor para transmitir cada leitura analógica bruta individualmente via rádio de longa distância diretamente ao satélite a cada 500 milissegundos.",
+      "Priorizar o processamento local e agregação de dados no próprio nó (in-network aggregation), transmitindo pacotes consolidados apenas quando houver anomalias, visto que o acionamento do rádio consome ordens de grandeza mais energia do que a execução de instruções de CPU.",
+      "Manter o rádio transmissor em escuta ativa contínua sem nenhum modo de suspensão (sleep mode) para garantir que nenhum pacote se perca na rede.",
+      "Substituir todos os protocolos de enlace por sessões TCP orientadas a conexão com aperto de mão triplo e janelas deslizantes pesadas em cada leitura.",
+      "Exigir que todos os nós sensores executem um banco de dados relacional completo em memória flash secundária."
+    ],
+    "answer": 1,
+    "explanation": "Em nós de WSN (motes), a física dos semicondutores dita que transmitir 1 bit por radiofrequência consome a mesma energia de executar centenas a milhares de instruções aritméticas na CPU. Portanto, a regra de ouro em sistemas distribuídos de sensoriamento é: 'computação é barata, comunicação é caríssima'. Os nós devem filtrar, agregar e sumarizar dados localmente, transmitindo o mínimo possível de pacotes pela rede sem fio.",
+    "distractors": [
+      "Incorreta: Transmitir leituras brutas a cada 500 ms esgotaria as baterias dos sensores em questão de horas.",
+      "Incorreta: O rádio em escuta ativa consome quase tanta energia quanto transmitindo; protocolos de WSN utilizam duty-cycling e sleep modes agressivos.",
+      "Incorreta: TCP tem overhead excessivo de cabeçalho (20 bytes) e handshakes caros, sendo inviável para pacotes mínimos de WSN.",
+      "Incorreta: Microcontroladores de sensores possuem apenas alguns kilobytes de RAM, incapazes de rodar SGBDs relacionais completos."
+    ]
+  },
+  {
+    "id": 11,
+    "category": "Taxonomia & Paradigmas",
+    "topic": "A Hierarquia Cloud–Edge–Things",
+    "question": "A arquitetura distribuída moderna particiona tarefas na hierarquia Cloud–Edge–Things. Em um sistema de veículos autônomos conectados e cidades inteligentes, como essa divisão de processamento deve ser estabelecida para garantir segurança e escalabilidade técnica?",
+    "options": [
+      "Things (câmeras do carro) transmitem o fluxo bruto de vídeo em 4K para a Nuvem; a Nuvem processa se há um pedestre à frente e devolve o comando de frear em 15 segundos.",
+      "O processamento crítico em tempo real com tolerância a latências de milissegundos (frenagem de emergência, detecção imediata de pedestres) ocorre no próprio veículo/borda imediata (Things/Edge); a Nuvem Central é utilizada para compilar estatísticas agregadas, treinar modelos globais de visão computacional e distribuir atualizações de mapas.",
+      "A camada de Edge é dispensável, pois centros de dados centrais em nuvem possuem latência nula garantida pela velocidade da luz.",
+      "Toda e qualquer decisão deve ser tomada exclusivamente na camada de Things, dispensando servidores de borda ou computação em nuvem em qualquer circunstância.",
+      "A Nuvem executa o controle mecânico das válvulas de injeção de combustível de cada automóvel em tempo real via chamadas HTTP síncronas."
+    ],
+    "answer": 1,
+    "explanation": "A hierarquia Cloud-Edge-Things estabelece que processamentos que exigem latência ultrabaixa (1 a 10 ms) e segurança de vida humana (frenagem, anticolisão) devem ser processados localmente no dispositivo (Things) ou na borda imediata (Edge). A nuvem centralizada, por possuir latência de rede imprevisível (dezenas a centenas de ms), dedica-se a tarefas assíncronas e pesadas de longo prazo (treinamento de IA, telemetria analítica, faturamento).",
+    "distractors": [
+      "Incorreta: Uma latência de 15 segundos para frenagem causaria acidentes fatais imediatos.",
+      "Incorreta: Viola a Falácia 2 de Deutsch (a latência não é zero) e os limites físicos da propagação da luz na fibra óptica.",
+      "Incorreta: O veículo isolado não possui capacidade de armazenamento histórico de petabytes nem capacidade computacional para treinar modelos globais de IA de frota.",
+      "Incorreta: Chamadas HTTP remotas sobre redes móveis para controle de motor são inviáveis e inseguras."
+    ]
+  },
+  {
+    "id": 12,
+    "category": "Arquiteturas de Software",
+    "topic": "Matriz de Acoplamento no Espaço e no Tempo",
+    "question": "A matriz de acoplamento classifica os estilos arquiteturais segundo o acoplamento no Espaço (Referência) e no Tempo. Considere um sistema onde os componentes emissores não precisam conhecer a identidade ou endereço dos receptores (desacoplamento espacial) e os emissores e receptores não precisam estar ativos ou online no mesmo instante de tempo para que a informação seja transferida (desacoplamento temporal). Qual das seguintes tecnologias representa o estado de pleno desacoplamento espacial e temporal?",
+    "options": [
+      "Chamada de Procedimento Remoto (RPC) síncrona sobre sockets TCP.",
+      "Invocação de Método Remoto (Java RMI).",
+      "Espaço de Tuplas (modelo Linda / JavaSpaces) ou Plataformas de Event Streaming persistentes (Apache Kafka).",
+      "Streaming de áudio UDP unicast em tempo real.",
+      "Conexão Telnet ponto a ponto com terminal remoto interativo."
+    ],
+    "answer": 2,
+    "explanation": "No Espaço de Tuplas (modelo Linda) e em plataformas como Kafka, o desacoplamento é pleno: (1) Espacial: emissores postam tuplas/mensagens em um repositório ou tópico sem saber quem as lerá; (2) Temporal: a tupla/evento fica persistida no espaço compartilhado ou no log em disco, permitindo que o consumidor a leia horas ou dias depois, mesmo após o emissor ter sido desligado.",
+    "distractors": [
+      "Incorreta: RPC clássico impõe acoplamento espacial (endereço do host/porta do servidor) e temporal (servidor ativo no mesmo instante).",
+      "Incorreta: Java RMI exige que o objeto remoto esteja instanciado e ativo no servidor de destino (acoplamento temporal e espacial).",
+      "Incorreta: Streaming UDP em tempo real possui desacoplamento temporal nulo: pacotes transmitidos perdem-se se o receptor não estiver escutando no exato momento.",
+      "Incorreta: Telnet é fortemente acoplado tanto no espaço quanto no tempo."
+    ]
+  },
+  {
+    "id": 13,
+    "category": "Arquiteturas de Software",
+    "topic": "Arquiteturas Multicamadas: Thin Client vs. Fat Client",
+    "question": "Em sistemas cliente-servidor corporativos, a distribuição funcional divide-se nas camadas de Apresentação (UI), Lógica de Aplicação (Negócio) e Persistência (Dados). Ao comparar uma configuração de 'Cliente Magro' (Thin Client) com uma de 'Cliente Gordo' (Fat Client), qual é a principal vantagem de engenharia proporcionada pela arquitetura de Cliente Magro?",
+    "options": [
+      "O cliente magro funciona perfeitamente sem nenhuma conexão de rede com o servidor central, processando todas as regras de negócio localmente.",
+      "Facilidade centralizada de manutenção, atualização e segurança: como o cliente hospeda apenas a apresentação mínima, alterações nas regras de negócio são implantadas exclusivamente nos servidores centrais, sem necessidade de atualizar binários em milhares de estações clientes distribuídas.",
+      "O cliente magro reduz a carga computacional dos servidores centrais a quase zero, transferindo todo o processamento de banco de dados para os computadores dos usuários.",
+      "O cliente magro consome muito menos largura de banda que o cliente gordo em aplicações com renderização gráfica 3D pesada.",
+      "O cliente magro elimina a necessidade de servidores de aplicação e de sistemas de banco de dados."
+    ],
+    "answer": 1,
+    "explanation": "A grande vantagem histórica e de manutenção do Cliente Magro (ex.: aplicações Web onde o navegador apenas renderiza HTML/CSS) reside no gerenciamento centralizado: para corrigir um bug ou atualizar uma regra de negócio, altera-se apenas o servidor central. No Cliente Gordo (Fat Client), qualquer modificação de regra exige distribuir e reinstalar novas versões executáveis em milhares de máquinas corporativas espalhadas.",
+    "distractors": [
+      "Incorreta: O cliente magro depende criticamente da conexão de rede contínua com o servidor.",
+      "Incorreta: Pelo contrário, o cliente magro concentra o processamento da lógica nos servidores centrais, aumentando a carga neles.",
+      "Incorreta: Transmitir telas ou comandos de renderização remota de alta definição consome substancialmente mais banda de rede contínua.",
+      "Incorreta: O cliente magro transfere a responsabilidade justamente para os servidores de aplicação e banco centrais."
+    ]
+  },
+  {
+    "id": 14,
+    "category": "Arquiteturas de Software",
+    "topic": "Arquiteturas P2P Híbridas e a Função dos Superpeers (Skype)",
+    "question": "Na arquitetura peer-to-peer híbrida utilizada historicamente pelo Skype (versões 2003–2012), qual era o papel fundamental desempenhado pelos nós denominados Superpeers (ou Supernodes)?",
+    "options": [
+      "Eles eram servidores dedicados corporativos mantidos em datacenters da Microsoft para gravar todas as chamadas telefônicas em fitas magnéticas.",
+      "Eles eram nós comuns residenciais eleitos dinamicamente por possuírem IP público acessível, alta largura de banda e disponibilidade, atuando como relés transparentes de tráfego para conectar dois clientes que estavam atrás de firewalls e NATs restritivos simétricos.",
+      "Eles eram responsáveis exclusivos por minerar criptomoedas para financiar o desenvolvimento do software.",
+      "Eles atuavam como autoridades certificadoras de chave pública governamentais para emissão de passaportes digitais.",
+      "Sua única função era executar o algoritmo de ordenação total de Lamport para sincronizar o relógio físico mundial."
+    ],
+    "answer": 1,
+    "explanation": "No Skype original, a maioria dos usuários residenciais situava-se atrás de roteadores domésticos com NAT (Network Address Translation) e firewalls estritos, impedindo a abertura de conexões P2P diretas de entrada. O software elegia autonomamente nós com IP público fixo e banda ociosa como Supernodes, utilizando-os para indexação distribuída de usuários e como relés (relays) intermediários para repassar o tráfego de voz e dados entre clientes impossibilitados de se comunicarem diretamente.",
+    "distractors": [
+      "Incorreta: Na fase clássica do Skype, os supernodes eram nós de usuários voluntários comuns espalhados pela Internet, e não clusters proprietários.",
+      "Incorreta: Skype P2P não utilizava mineração de criptomoedas.",
+      "Incorreta: Superpeers não tinham nenhuma relação com emissão governamental de passaportes.",
+      "Incorreta: Relógios físicos não eram sincronizados via Lamport para chamadas de áudio UDP."
+    ]
+  },
+  {
+    "id": 15,
+    "category": "Arquiteturas de Software",
+    "topic": "Arquitetura do BitTorrent e Política Tit-for-Tat",
+    "question": "O protocolo BitTorrent combina elementos centralizados e descentralizados para viabilizar transferência massiva de arquivos. A respeito dos papéis do Tracker, do Swarm e da estratégia de reciprocidade (Tit-for-Tat), assinale a afirmativa correta:",
+    "options": [
+      "O Tracker armazena 100% do conteúdo do arquivo em seus discos e o transmite por download direto para cada cliente conectado.",
+      "O Tracker atua apenas como serviço de coordenação e registro, mantendo a lista de IPs dos nós participantes do enxame (Swarm); a transferência dos fragmentos ocorre de par em par (P2P), onde cada nó aplica a política Tit-for-Tat priorizando o envio de dados para os vizinhos que mais rapidamente lhe fornecem dados em retorno.",
+      "A política Tit-for-Tat incentiva o comportamento de 'free-rider' (nós que apenas baixam e nunca fazem upload de dados).",
+      "No BitTorrent, um nó deixa de participar do enxame no instante em que conclui o download, sendo tecnicamente proibido de continuar enviando pedaços.",
+      "O BitTorrent depende obrigatoriamente de que todos os nós participantes pertençam à mesma rede local (LAN)."
+    ],
+    "answer": 1,
+    "explanation": "A arquitetura do BitTorrent é brilhante por sua separação de responsabilidades: o Tracker não trafega arquivos, apenas registra quem está no enxame (Swarm). O download ocorre em paralelo diretamente entre os pares em pedaços (pieces). A política de teoria dos jogos Tit-for-Tat (olho por olho) premia nós colaborativos: um cliente cede sua banda de upload prioritariamente para os pares que mais rapidamente estão lhe cedendo pedaços, reprimindo nós parasitas (free-riders).",
+    "distractors": [
+      "Incorreta: O Tracker nunca hospeda o arquivo real; isso sobrecarregaria o servidor como no modelo cliente-servidor tradicional.",
+      "Incorreta: O Tit-for-Tat foi criado justamente para combater e punir os free-riders, estrangulando o upload para quem não coopera.",
+      "Incorreta: Nós que concluem o download tornam-se 'Seeders' e são incentivados a continuar semeando pedaços para a saúde do enxame.",
+      "Incorreta: O BitTorrent opera sobre a Internet global em larga escala."
+    ]
+  },
+  {
+    "id": 16,
+    "category": "Arquiteturas de Software",
+    "topic": "Redes de Distribuição de Conteúdo (CDNs)",
+    "question": "Em uma Rede de Distribuição de Conteúdo (CDN como Cloudflare ou Akamai), qual é o mecanismo primário utilizado para direcionar a requisição de um usuário no Brasil para um servidor de borda (edge server) localizado em São Paulo, em vez de direcioná-lo para o servidor de origem em Nova York?",
+    "options": [
+      "O navegador web do usuário executa um ping físico de broadcast ICMP para todos os servidores da Terra antes de cada clique.",
+      "Utiliza-se resolução de DNS com Anycast ou geolocalização IP, onde os servidores de nomes autoritativos resolvem o domínio retornando o endereço IP do servidor de borda com a menor distância de roteamento BGP ou menor RTT em relação ao resolvedor do usuário.",
+      "O provedor de telecomunicações intercepta o teclado do usuário e altera a URL digitada adicionando o prefixo '/saopaulo/'.",
+      "As CDNs exigem que o usuário instale uma máquina virtual dedicada e configure manualmente uma VPN com o servidor de origem.",
+      "O servidor de origem em Nova York atende a requisição primeiro e depois transfere a tela pronta para São Paulo via cabo submarino exclusivo."
+    ],
+    "answer": 1,
+    "explanation": "As CDNs baseiam-se em BGP Anycast e servidores DNS geograficamente conscientes (GeoDNS). Quando o usuário resolve o nome do domínio, a infraestrutura Anycast direciona os pacotes para o PoP (Point of Presence) e servidor de borda mais próximo segundo a tabela de roteamento da Internet. Se o arquivo estiver no cache da borda (cache hit), a resposta é entregue em poucos milissegundos sem tocar o servidor de origem.",
+    "distractors": [
+      "Incorreta: Broadcasts ICMP não atravessam a Internet aberta e seriam inviáveis.",
+      "Incorreta: Não há reescrita manual de URLs em nível de provedor; a URL permanece a mesma para preservar a transparência de localização.",
+      "Incorreta: O acesso à CDN é 100% transparente ao usuário final, sem exigir VPNs ou VMs locais.",
+      "Incorreta: Se o servidor de origem atendesse primeiro, a CDN perderia todo o propósito de reduzir a latência e poupar os enlaces centrais."
+    ]
+  },
+  {
+    "id": 17,
+    "category": "Arquiteturas de Software",
+    "topic": "Adaptabilidade de Middleware: Interceptors",
+    "question": "O padrão arquitetural de Interceptadores (Interceptors) é amplamente empregado na construção de plataformas modernas de middleware (como gRPC interceptors, CORBA request interceptors e middlewares de frameworks web). Qual é a principal vantagem de engenharia ao utilizar interceptors em sistemas distribuídos?",
+    "options": [
+      "Permitir que conexões de rede operem sem placas de rede físicas.",
+      "Possibilitar a injeção modular e transparente de comportamentos transversais (cross-cutting concerns) — como autenticação de tokens mTLS/JWT, métricas de telemetria, logs de auditoria e tracing distribuído — no fluxo de envio e recepção de mensagens, sem alterar nenhuma linha do código de negócio da aplicação.",
+      "Acelerar o processamento de CPU substituindo o código compilado da aplicação por código assembly em tempo real.",
+      "Eliminar a necessidade de protocolos de transporte como TCP e UDP, permitindo que mensagens trafeguem diretamente por indução magnética.",
+      "Garantir que todas as chamadas de rede executem instantaneamente com latência rigorosamente nula."
+    ],
+    "answer": 1,
+    "explanation": "Interceptors agem como filtros ou ganchos (hooks) programados no pipeline do middleware. Eles interceptam o fluxo da chamada antes que ela saia pela rede (no cliente) ou antes que atinja o método de negócio (no servidor). Isso permite desacoplar a lógica de negócio de preocupações operacionais (segurança, medição de latência, injeção de Trace IDs do OpenTelemetry e retentativas automáticas).",
+    "distractors": [
+      "Incorreta: Não possui relação com a presença ou ausência de placas físicas de rede.",
+      "Incorreta: Interceptors não reescrevem código assembly em tempo de execução.",
+      "Incorreta: Afirmação fantasiosa sobre indução magnética.",
+      "Incorreta: Nenhum interceptor tem o poder de anular as leis da física e zerar a latência de rede."
+    ]
+  },
+  {
+    "id": 18,
+    "category": "Processos, Threads & Servidores",
+    "topic": "Processos vs. Threads: Espaço de Endereçamento e Troca de Contexto",
+    "question": "Em sistemas operacionais multiprogramados que suportam nós distribuídos, a escolha entre arquitetar um servidor utilizando múltiplos Processos ou múltiplas Threads envolve compromissos estruturais. Qual das afirmativas abaixo descreve com precisão uma diferença fundamental entre esses dois modelos de concorrência?",
+    "options": [
+      "Threads possuem espaços de endereçamento de memória virtual totalmente isolados pelo hardware (MMU), de modo que uma falha de ponteiro nulo em uma thread nunca afeta outras threads do mesmo processo.",
+      "A troca de contexto (context switch) entre threads do mesmo processo é significativamente mais rápida do que entre processos distintos, pois não exige a invalidação da tabela de páginas da memória virtual nem o descarte completo das entradas do Translation Lookaside Buffer (TLB).",
+      "Processos compartilham automaticamente todas as variáveis globais e ponteiros de memória sem precisar de nenhum mecanismo de IPC.",
+      "Criar um novo processo no sistema operacional (via fork) consome exatamente a mesma quantidade de nanossegundos e memória que criar uma thread leve.",
+      "Threads não podem ser escalonadas em diferentes núcleos físicos de processadores multinúcleo modernos."
+    ],
+    "answer": 1,
+    "explanation": "Quando o SO troca a execução entre duas threads que pertencem ao *mesmo* processo, o espaço de endereçamento de memória virtual permanece idêntico. O kernel apenas salva registradores e ponteiro de pilha, mantendo as entradas do TLB válidas. Ao trocar de contexto entre dois *processos* diferentes, o SO precisa carregar um novo diretório de páginas na MMU, invalidando o TLB e degradando caches, tornando a operação muito mais custosa.",
+    "distractors": [
+      "Incorreta: Threads compartilham a mesma memória; uma pane fatal (segfault) em uma thread derruba o processo inteiro e todas as suas threads irmãs.",
+      "Incorreta: Processos possuem memória estritamente isolada; a comunicação entre eles exige mecanismos explícitos de IPC (pipes, sockets, shm).",
+      "Incorreta: Criar processos envolve alocação de PCB, duplicação de estruturas e cópia de tabelas de páginas, custando ordens de grandeza mais que criar threads.",
+      "Incorreta: Threads de kernel (1:1) são escalonadas perfeitamente em múltiplos núcleos de CPU físicos em paralelo."
+    ]
+  },
+  {
+    "id": 19,
+    "category": "Processos, Threads & Servidores",
+    "topic": "Condições de Corrida e Condições de Coffman para Deadlock",
+    "question": "Um servidor multithreaded gerencia transferências financeiras entre contas bancárias. O código executa concorrentemente duas transações:\n- Transação 1: transfere da Conta A para a Conta B (adquire Lock(A) e em seguida Lock(B)).\n- Transação 2: transfere da Conta B para a Conta A (adquire Lock(B) e em seguida Lock(A)).\nSob carga simultânea intensa, o servidor para de responder. Qual fenômeno ocorreu e qual das quatro condições de Coffman foi a causa direta do problema?",
+    "options": [
+      "Ocorreu um transbordamento de pilha (stack overflow) decorrente da falta de memória física.",
+      "Ocorreu uma Condição de Corrida (Race Condition) que foi resolvida desligando as CPUs secundárias.",
+      "Ocorreu um Impasse (Deadlock), provocado diretamente pela presença da condição de 'Espera Circular' (Circular Wait), onde a Transação 1 segura Lock(A) aguardando Lock(B), enquanto a Transação 2 segura Lock(B) aguardando Lock(A).",
+      "Ocorreu uma violação de acesso em disco porque mutexes só funcionam em computadores monoprocessadores.",
+      "Ocorreu Starvation temporária que se resolve espontaneamente sem intervenção após alguns segundos."
+    ],
+    "answer": 2,
+    "explanation": "O clássico problema de transferências entre duas contas com aquisição de travas em ordens inversas cria a quarta condição de Coffman: Espera Circular (Circular Wait). A Transação 1 trava A e quer B; a Transação 2 trava B e quer A. Nenhuma libera sua trava antes de obter a próxima, gerando Deadlock perpétuo. A solução de engenharia consiste em impor uma *ordem global total estrita de aquisição de travas* (ex.: sempre travar primeiro a conta com menor ID numérico).",
+    "distractors": [
+      "Incorreta: Não há esgotamento de memória de pilha recursiva; as threads estão simplesmente bloqueadas em estado de espera de mutex.",
+      "Incorreta: A condição de corrida foi evitada pelo uso dos locks, mas a ordem inadequada gerou um impasse insolúvel.",
+      "Incorreta: Mutexes são concebidos primordialmente para sistemas multiprocessadores.",
+      "Incorreta: Deadlocks não se resolvem espontaneamente; os processos ficam congelados até reinicialização forçada ou intervenção de um detector de ciclo."
+    ]
+  },
+  {
+    "id": 20,
+    "category": "Processos, Threads & Servidores",
+    "topic": "Padrão Despachante/Operário (Dispatcher/Worker) e Pools de Threads",
+    "question": "No projeto de servidores de rede concorrentes, o padrão Despachante/Operário (Dispatcher/Worker) associado a um Pool de Threads (Thread Pool) é amplamente consagrado. Qual é a principal motivação para utilizar um Pool de Threads pré-alocado em vez de criar uma nova thread a cada conexão entrante (Thread-per-Request)?",
+    "options": [
+      "Impedir que o servidor atenda a mais de um cliente ao mesmo tempo, transformando-o em um servidor iterativo.",
+      "Evitar a degradação catastrófica de desempenho e esgotamento de memória provocados pela sobrecarga contínua de alocação de pilhas e chamadas de sistema (spawn/destroy) sob rajadas de tráfego, delimitando o número máximo de threads ativas à capacidade real da CPU.",
+      "O Thread Pool elimina a necessidade de sincronizar variáveis compartilhadas na memória do servidor.",
+      "O Thread Pool permite que a máquina servidora continue funcionando mesmo após ser desconectada da tomada elétrica.",
+      "O padrão Dispatcher/Worker foi projetado unicamente para computadores sem placa de rede."
+    ],
+    "answer": 1,
+    "explanation": "No modelo ingênuo 'Thread-per-Request', uma rajada de 20.000 requisições simultâneas forçaria o SO a criar 20.000 threads. Cada thread consome megabytes de memória de pilha (stack) e disputa tempo de CPU, gerando 'thrashing' e esgotamento de memória do kernel. O Thread Pool pré-aloca um número estável de threads (ex.: 200) e enfileira requisições excedentes em uma Work Queue, mantendo o sistema operando com vazão máxima e latência controlada sem falhas de memória.",
+    "distractors": [
+      "Incorreta: O Thread Pool mantém o servidor concorrente atendendo múltiplas requisições em paralelo.",
+      "Incorreta: Threads no pool compartilham a mesma memória do processo; a necessidade de mutexes/sincronização permanece indispensável.",
+      "Incorreta: Afirmação absurda sobre desligamento elétrico.",
+      "Incorreta: O padrão é o pilar central dos servidores de rede TCP/IP corporativos."
+    ]
+  },
+  {
+    "id": 21,
+    "category": "Processos, Threads & Servidores",
+    "topic": "Estado no Servidor: Stateful vs. Stateless",
+    "question": "Em arquiteturas de sistemas distribuídos na Web, a escolha entre construir serviços com estado (Stateful) ou sem estado (Stateless) afeta diretamente a escalabilidade e a tolerância a falhas. Qual das afirmativas abaixo reflete com exatidão uma vantagem decisiva dos serviços Stateless?",
+    "options": [
+      "Serviços stateless mantêm o carrinho de compras do usuário exclusivamente na memória volátil de um nó específico, exigindo sessões pegajosas (sticky sessions).",
+      "Serviços stateless não retêm histórico de sessão na memória do servidor entre requisições; portanto, se um servidor queimar no meio da navegação de um usuário, qualquer outro nó idêntico no cluster pode processar a requisição seguinte imediatamente, simplificando radicalmente o balanceamento de carga e a recuperação de panes.",
+      "Serviços stateless são imunes a ataques cibernéticos e dispensam o uso de criptografia TLS.",
+      "Serviços stateless possuem desempenho local superior a servidores stateful porque nunca precisam ler dados de bancos de dados secundários.",
+      "A arquitetura stateless exige compulsoriamente que o cliente e o servidor compartilhem o mesmo barramento físico de memória RAM."
+    ],
+    "answer": 1,
+    "explanation": "A grande força do paradigma Stateless (pilar da Web e do estilo REST) é a resiliência e a escalabilidade horizontal irrestrita: como todo o contexto necessário para atender a requisição é carregado na própria mensagem (ex.: tokens criptográficos JWT ou IDs de banco), os servidores não retêm estado em memória. Se um servidor cair ou for desativado para manutenção, o balanceador de carga simplesmente despacha a próxima requisição para outro nó qualquer, que a processará sem problemas.",
+    "distractors": [
+      "Incorreta: Manter sessão na memória de um nó específico com sticky sessions é a definição exata de arquitetura *Stateful*.",
+      "Incorreta: Arquiteturas stateless ainda exigem autenticação e criptografia TLS para proteger os dados em trânsito.",
+      "Incorreta: Servidores stateful costumam ter desempenho ligeiramente superior por requisição isolada porque mantêm caches quentes locais em memória.",
+      "Incorreta: Clientes e servidores stateless situam-se em máquinas físicas completamente separadas pela rede."
+    ]
+  },
+  {
+    "id": 22,
+    "category": "Processos, Threads & Servidores",
+    "topic": "Balanceamento de Carga e TCP Handoff",
+    "question": "Em aglomerados de servidores (server farms) de altíssima escala, o balanceador de carga frontal pode tornar-se um severo gargalo de largura de banda, especialmente quando as respostas do servidor (downloads de páginas e vídeos) são ordens de grandeza maiores que as requisições enviadas pelos clientes. Qual técnica de rede resolve essa assimetria permitindo que os servidores backend respondam diretamente aos clientes pela rede?",
+    "options": [
+      "Inundação por Flooding com TTL.",
+      "Handoff de Conexão TCP (TCP Handoff / Direct Server Return — DSR).",
+      "Conversão de TCP para o protocolo de correio SMTP.",
+      "Execução de chamadas RPC com passagem de parâmetros exclusivamente por valor.",
+      "Uso de servidores iterativos monoprocessados."
+    ],
+    "answer": 1,
+    "explanation": "No mecanismo de TCP Handoff (e no seu correlato Direct Server Return — DSR): o cliente conecta-se ao switch/balanceador front-end; o balanceador inspeciona a requisição inicial e transfere o contexto da conexão TCP para um dos servidores de aplicação backend. O servidor backend processa a tarefa e **envia os pacotes de resposta diretamente ao cliente através da rede externa**, forjando o IP virtual (VIP) do balanceador como remetente. O switch frontal deixa de ser o gargalo de saída do cluster.",
+    "distractors": [
+      "Incorreta: Flooding causaria tempestade de tráfego e estrangularia ainda mais a rede.",
+      "Incorreta: SMTP é protocolo de correio eletrônico, sem relação com roteamento de conexões HTTP/TCP.",
+      "Incorreta: Passagem de parâmetros por valor é conceito de serialização de RPC/RMI, não de camada de transporte.",
+      "Incorreta: Servidores iterativos piorariam brutalmente a capacidade de vazão do sistema."
+    ]
+  },
+  {
+    "id": 23,
+    "category": "Processos, Threads & Servidores",
+    "topic": "Migração de Código: Fraca vs. Forte e Virtualização",
+    "question": "A mobilidade de código em sistemas distribuídos pode ser classificada em Migração Fraca (Weak Mobility) e Migração Forte (Strong Mobility). Qual das seguintes afirmativas expressa com precisão a distinção conceitual entre essas duas abordagens?",
+    "options": [
+      "Na migração forte, apenas o código-fonte em texto claro é transferido, enquanto na migração fraca, todo o hardware físico da máquina é transportado fisicamente por caminhão.",
+      "Na migração fraca, apenas o código executável (e opcionalmente dados de inicialização) é transferido, reiniciando a execução na máquina de destino a partir do ponto de entrada padrão; na migração forte, transfere-se o código juntamente com o estado completo de execução em tempo de execução (pilha de chamadas, variáveis locais e registradores de CPU), retomando a execução exatamente da mesma instrução onde foi pausada.",
+      "A migração forte é implementada trivialmente em qualquer página web através de código JavaScript, enquanto a migração fraca exige supercomputadores quânticos.",
+      "Contêineres Docker operam exclusivamente através de migração forte em tempo de execução contínuo sem nunca pausar processos.",
+      "Na migração forte, o processo emissor é destruído antes que a transmissão de rede seja iniciada, perdendo todos os dados."
+    ],
+    "answer": 1,
+    "explanation": "A literatura formal (Fuggetta, Picco e Vigna) estabelece: Migração Fraca move apenas código (ex.: baixar um script JS no navegador ou transferir um binário); o código executa do início (main/run). Migração Forte move código + segmento de execução (pilha de chamadas, program counter, registradores); o processo 'dorme' em uma máquina e 'acorda' em outra na mesma instrução exata. A migração forte exige suporte especializado do runtime/SO (como na migração ao vivo de máquinas virtuais).",
+    "distractors": [
+      "Incorreta: Migração forte refere-se à serialização do estado de execução, não a transporte físico de hardware.",
+      "Incorreta: JavaScript em navegadores é o exemplo clássico de migração *fraca* (code-on-demand).",
+      "Incorreta: Contêineres Docker padrão utilizam imagens de arquivos (código/ambiente) e inicializam processos a partir do ponto de entrada (migração fraca de imagem).",
+      "Incorreta: Na migração forte, o processo na origem só é desalocado após a confirmação de que o estado foi restaurado na máquina de destino com sucesso."
+    ]
+  },
+  {
+    "id": 24,
+    "category": "Comunicação, RPC & Mensageria",
+    "topic": "Camada de Transporte: O Dilema de Projeto entre TCP e UDP",
+    "question": "A escolha do protocolo de transporte subjacente impacta diretamente o comportamento de sistemas distribuídos. Em aplicações como chamadas de voz/vídeo em tempo real (VoIP) e protocolos de fofoca epidêmica (Gossip), os projetistas de software optam frequentemente por UDP em detrimento de TCP. Qual é o motivo técnico primordial para essa decisão de engenharia?",
+    "options": [
+      "O TCP é proibido por normas governamentais de segurança em redes de longa distância.",
+      "O UDP realiza criptografia quântica ponta a ponta nativamente em seu cabeçalho de 8 bytes.",
+      "O mecanismo de controle de fluxo e retransmissão obrigatória do TCP induz o fenômeno de bloqueio de início de fila (Head-of-Line Blocking) e atrasos imprevisíveis de retransmissão; em fluxos multimídia interativos e protocolos de fofoca, dados atrasados tornam-se inúteis, sendo preferível tolerar perdas pontuais de pacotes a sofrer com picos estocásticos de latência.",
+      "O TCP consome 99% do processamento de qualquer CPU multinúcleo moderna em cada pacote transmitido.",
+      "O UDP garante que todos os pacotes cheguem rigorosamente em ordem sem nunca perder nenhum byte na rede."
+    ],
+    "answer": 2,
+    "explanation": "Em comunicações interativas (jogos online, áudio/vídeo) e em redes epidêmicas (gossip), a latência mínima e estável é muito mais valiosa do que a entrega garantida de dados obsoletos. Se um frame de áudio atrasar 500 ms esperando retransmissão TCP, ele não serve mais para a conversa do usuário. O UDP não possui bloqueio de início de fila (Head-of-Line Blocking) nem retransmissões automáticas, permitindo que a aplicação decida como tratar perdas sem congelar o fluxo.",
+    "distractors": [
+      "Incorreta: TCP é o protocolo padrão da Web e da Internet global, sem nenhuma proibição.",
+      "Incorreta: UDP não implementa criptografia nativa; segurança em UDP é provida por camadas superiores como DTLS.",
+      "Incorreta: O processamento de cabeçalhos TCP é altamente otimizado por hardware em placas de rede modernas (TCP Offload Engine).",
+      "Incorreta: UDP é um protocolo de 'melhor esforço' (best-effort) que não provê garantias de entrega ou ordenação."
+    ]
+  },
+  {
+    "id": 25,
+    "category": "Comunicação, RPC & Mensageria",
+    "topic": "Semânticas de Falha em RPC e Idempotência",
+    "question": "Um desenvolvedor implementou um serviço de pagamentos bancários utilizando um framework de Chamada de Procedimento Remoto (RPC) configurado com a semântica de falha 'Pelo Menos Uma Vez' (At-Least-Once). O método remoto oferecido é:\n`transferir(origem, destino, 1000)`\nDurante um período de instabilidade temporária na rede, o cliente dispara a chamada e sofre um timeout de rede sem receber resposta. O cliente retransmite a requisição conforme previsto pelo protocolo. Sabendo que o servidor havia processado a primeira requisição antes do timeout, qual é o resultado no saldo das contas bancárias e qual é a falha conceitual de projeto cometida?",
+    "options": [
+      "O saldo permanece inalterado porque o protocolo RPC desfaz automaticamente as transações se houver qualquer timeout na rede.",
+      "A conta de origem será debitada duas vezes ($ 2.000 no total), pois a operação `transferir` não é idempotente e a semântica At-Least-Once garante que a requisição seja reexecutada no destino; operações financeiras não-idempotentes exigem deduplicação estrita com tokens de idempotência ou semântica At-Most-Once.",
+      "O servidor detecta automaticamente o valor de $ 1.000 e reverte o segundo comando via relógio de Lamport.",
+      "A semântica At-Least-Once garante matematicamente que uma função nunca executa mais de uma vez sob qualquer circunstância.",
+      "O dinheiro é transferido para o banco central como taxa de retransmissão de rede."
+    ],
+    "answer": 1,
+    "explanation": "A semântica 'At-Least-Once' retransmite a requisição até receber confirmação. Se a operação for *não-idempotente* (como debitar $ 1.000), cada retransmissão aceita pelo servidor causará um novo débito, gerando cobrança duplicada. Para usar At-Least-Once com segurança em sistemas transacionais, o cliente deve enviar um 'Token de Idempotência' (UUID único da transação); o servidor armazena o token e, ao receber repetições, retorna a resposta anterior sem reexecutar o débito.",
+    "distractors": [
+      "Incorreta: O protocolo RPC não reverte operações no banco de dados automaticamente perante timeouts da camada de transporte.",
+      "Incorreta: Relógios de Lamport ordenam eventos logicamente, mas não analisam nem alteram a semântica de código de negócio financeiro.",
+      "Incorreta: 'At-Least-Once' significa literalmente 'Pelo Menos Uma Vez' (1, 2 ou mais vezes); 'Exatamente Uma Vez' ou 'No Máximo Uma Vez' é que limitam execuções.",
+      "Incorreta: Afirmação fantasiosa sobre o banco central reter valores de rede."
+    ]
+  },
+  {
+    "id": 26,
+    "category": "Comunicação, RPC & Mensageria",
+    "topic": "Variações de RPC: Síncrona, Assíncrona e Síncrona Diferida",
+    "question": "Em sistemas distribuídos modernos, como se caracteriza formalmente uma Chamada de Procedimento Remoto Síncrona Diferida (Deferred Synchronous RPC)?",
+    "options": [
+      "O cliente dispara a chamada remota, o servidor processa e nunca retorna nenhuma resposta nem valor de retorno.",
+      "O cliente despacha a invocação e é desbloqueado assim que o servidor confirma o recebimento; o processamento da tarefa ocorre em segundo plano no servidor, e o cliente pode recuperar o valor de retorno posteriormente através de uma Promessa/Futuro (Promise/Future) ou recebê-lo via rotina de retorno (Callback).",
+      "O cliente permanece congelado fisicamente até que o servidor termine a execução do procedimento, bloqueando toda a máquina.",
+      "A chamada remota é adiada para execução exclusiva durante a madrugada através de fitas magnéticas.",
+      "O procedimento é executado localmente na máquina do cliente sem trafegar nenhum pacote pela rede."
+    ],
+    "answer": 1,
+    "explanation": "A RPC Síncrona Diferida desmembra a requisição e a resposta em duas interações assíncronas: o cliente envia a requisição e obtém uma referência futura (Future/Promise), retomando sua execução local imediatamente (sem bloquear). Quando o servidor termina o cálculo demorado, ele entrega o resultado via callback ou o cliente coleta o resultado quando for conveniente. Isso combina o não-bloqueio da assincronia com a obtenção do valor de retorno.",
+    "distractors": [
+      "Incorreta: Essa é a definição de RPC Assíncrona pura (One-Way RPC sem retorno).",
+      "Incorreta: Esse é o comportamento da RPC Síncrona clássica convencional.",
+      "Incorreta: Afirmação infundada sobre agendamento em fitas magnéticas.",
+      "Incorreta: Trata-se de uma chamada remota sobre a rede, e não de uma função puramente local."
+    ]
+  },
+  {
+    "id": 27,
+    "category": "Comunicação, RPC & Mensageria",
+    "topic": "O Padrão Moderno: gRPC sobre HTTP/2 e Protocol Buffers vs. REST",
+    "question": "O framework gRPC, concebido pelo Google, tornou-se o padrão hegemônico para comunicação entre microsserviços em centros de dados. Quais são as duas inovações técnicas decisivas que fundamentam a superioridade de desempenho do gRPC frente ao modelo tradicional REST/JSON sobre HTTP/1.1?",
+    "options": [
+      "O uso de cartões perfurados para armazenamento de rotas e compilação do código em linguagem Fortran 77.",
+      "Serialização binária compacta através de esquemas fortemente tipados com Protocol Buffers (cargas de 3 a 10 vezes menores que JSON) e transporte sobre HTTP/2 (multiplexação contínua de múltiplas chamadas sobre uma única conexão TCP com suporte a streaming bidirecional).",
+      "Eliminação completa de cabeçalhos de rede e substituição dos cabos de fibra óptica por conexões sem fio via laser.",
+      "O gRPC não utiliza rede, executando todos os microsserviços obrigatoriamente no mesmo chip de silício da CPU.",
+      "O gRPC substitui o protocolo TCP por mensagens de correio eletrônico SMTP."
+    ],
+    "answer": 1,
+    "explanation": "A supremacia do gRPC deve-se a: (1) Protocol Buffers (Protobuf), que serializa estruturas de dados em formato binário comprimido usando tags numéricas de campo (em vez de repetir nomes de campos textuais como no JSON), reduzindo drasticamente o tráfego; (2) HTTP/2, que resolve o Head-of-Line Blocking de HTTP/1.1 através de multiplexação de fluxos binários independentes sobre um único socket TCP, provendo suporte nativo a streaming bidirecional.",
+    "distractors": [
+      "Incorreta: Menção anacrônica a cartões perfurados e Fortran.",
+      "Incorreta: O HTTP/2 e o gRPC utilizam cabeçalhos (inclusive comprimidos via HPACK); a afirmação sobre laser é absurda.",
+      "Incorreta: O gRPC foi projetado primordialmente para redes distribuídas entre servidores distintos.",
+      "Incorreta: O gRPC opera sobre HTTP/2 e TCP/IP, sem qualquer dependência de SMTP."
+    ]
+  },
+  {
+    "id": 28,
+    "category": "Comunicação, RPC & Mensageria",
+    "topic": "Java RMI: Passagem de Parâmetros por Valor vs. por Referência Remota",
+    "question": "Na Invocação de Método Remoto em Java (Java RMI), o tratamento de argumentos e valores de retorno difere substancialmente dependendo da natureza do objeto transmitido. Qual é a regra estrita adotada pelo Java RMI para determinar se um objeto será passado 'Por Valor' ou 'Por Referência'?",
+    "options": [
+      "Todos os objetos em Java RMI são passados compulsoriamente por valor, clonando o hardware do servidor na máquina do cliente.",
+      "Objetos que implementam `java.io.Serializable` (e não implementam `Remote`) são serializados e passados 'Por Valor' (copiados integralmente pela rede gerando uma nova instância independente no destino); objetos que implementam `java.rmi.Remote` são passados 'Por Referência Remota' (o objeto real permanece no servidor de origem, e o que trafega pela rede é apenas o seu Stub leve representativo).",
+      "Objetos são passados por referência apenas se o programador converter o ponteiro em uma variável do tipo `int` em linguagem C.",
+      "O Java RMI proíbe a passagem de qualquer objeto complexo, aceitando apenas números inteiros entre 0 e 255.",
+      "A passagem por referência remota exige que o cliente tenha acesso direto aos discos físicos da máquina servidora via cabo USB compartilhado."
+    ],
+    "answer": 1,
+    "explanation": "No Java RMI: (1) Se a classe implementa `Serializable` (e não `Remote`), o runtime serializa seu estado em bytes, envia pela rede e cria uma cópia física idêntica e independente na JVM de destino (passagem por cópia/valor); (2) Se a classe implementa `java.rmi.Remote`, o objeto vive na JVM remota; o RMI envia ao cliente apenas um *Stub* que implementa a mesma interface, permitindo invocar métodos remotamente no objeto original (passagem por referência remota).",
+    "distractors": [
+      "Incorreta: Objetos remotos não são passados por valor integral, pois sua execução deve residir no servidor original.",
+      "Incorreta: Java não expõe aritmética de ponteiros de linguagem C para manipulação de referências de objetos gerenciados.",
+      "Incorreta: Java RMI suporta grafos arbitrários de objetos complexos contanto que sejam serializáveis.",
+      "Incorreta: Referências remotas comunicam-se via sockets TCP sobre a rede, sem exigir conexões físicas USB ou acesso a discos."
+    ]
+  },
+  {
+    "id": 29,
+    "category": "Comunicação, RPC & Mensageria",
+    "topic": "Apache Kafka: Commit Logs, Particionamento e Offsets",
+    "question": "O Apache Kafka organiza dados através de Tópicos e Partições, operando sob o conceito de Log Distribuído Persistente. A respeito do armazenamento e consumo de mensagens no Kafka, assinale a afirmativa tecnicamente correta:",
+    "options": [
+      "As mensagens em um tópico do Kafka são armazenadas exclusivamente na memória volátil de um broker central e são imediatamente destruídas pelo servidor no instante em que o primeiro consumidor as lê.",
+      "Cada partição de um tópico é modelada como um arquivo de log somente de anexação (append-only log) em disco, onde cada mensagem recebe um identificador sequencial imutável denominado Offset; as mensagens permanecem retidas pelo período configurado mesmo após o consumo, e cada consumidor mantém o controle autônomo sobre seu próprio ponteiro de leitura (offset).",
+      "O Kafka proíbe que um tópico possua mais de uma partição para evitar condições de corrida entre consumidores.",
+      "O particionamento de tópicos no Kafka impede a escalabilidade horizontal e restringe o consumo a exatamente um processo monothreaded por cluster.",
+      "Para consumir dados do Kafka, os clientes precisam compilar seus programas na mesma máquina física onde os brokers residem."
+    ],
+    "answer": 1,
+    "explanation": "O Kafka revolucionou o design de mensagerias ao adotar o *commit log append-only*. Eventos são gravados em disco de forma estritamente sequencial, recebendo um Offset numérico único e crescente. Como o log é persistente e imutável durante o período de retenção (dias ou meses), mensagens não são apagadas após o consumo. Os próprios consumidores salvam seu offset corrente (no tópico interno `__consumer_offsets`), permitindo leitura independente, reprocessamento de dados e paralelismo entre partições.",
+    "distractors": [
+      "Incorreta: Essa é a dinâmica de filas tradicionais transitórias em memória (ex.: RabbitMQ com auto-ack), oposta ao design do Kafka.",
+      "Incorreta: Tópicos no Kafka são divididos em múltiplas partições exatamente para permitir escalabilidade e paralelismo horizontal.",
+      "Incorreta: O particionamento é o principal mecanismo que viabiliza escalabilidade horizontal e paralelismo em grupos de consumidores.",
+      "Incorreta: O Kafka é um sistema distribuído em rede; produtores e consumidores operam remotamente através de conexões TCP."
+    ]
+  },
+  {
+    "id": 30,
+    "category": "Comunicação, RPC & Mensageria",
+    "topic": "Tolerância a Falhas no Apache Kafka: ISR e Eleição de Líder",
+    "question": "Em relação à alta disponibilidade de tópicos particionados no Apache Kafka com fator de replicação $R = 3$, qual é a função das Réplicas em Sincronia (In-Sync Replicas — ISR) e como o cluster trata a queda inesperada do broker líder da partição?",
+    "options": [
+      "O cluster paralisa todas as leituras e escritas para sempre até que o administrador substitua a placa-mãe do servidor líder que caiu.",
+      "A partição possui exatamente um nó Líder (que processa todas as leituras e escritas) e réplicas Seguidoras (Followers); o conjunto ISR reúne as réplicas que acompanham ativamente as atualizações do líder sem atrasos excessivos. Se o líder sofrer uma pane, uma das seguidoras pertencentes ao ISR é promovida automaticamente a nova líder em frações de segundo.",
+      "Todas as três réplicas aceitam gravações concorrentes simultâneas de clientes diferentes sem nenhuma coordenação, mesclando dados arbitrariamente.",
+      "O conjunto ISR é composto exclusivamente por nós clientes que não pertencem ao cluster do Kafka.",
+      "Se o líder cair, a partição é excluída do disco e todos os dados são apagados para evitar inconsistências."
+    ],
+    "answer": 1,
+    "explanation": "No modelo de replicação líder-seguidor do Kafka: apenas o Líder atende requisições de clientes. As réplicas seguidoras replicam os logs continuamente. Aquelas que estão em dia com o líder formam o conjunto ISR (In-Sync Replicas). Se o líder morrer, o cluster elege instantaneamente um novo líder dentre os membros do ISR, garantindo tolerância a falhas sem perda de dados (desde que `acks=all` tenha sido utilizado pelo produtor).",
+    "distractors": [
+      "Incorreta: O cluster possui recuperação e eleição de líder automáticas em milissegundos via KRaft ou ZooKeeper.",
+      "Incorreta: Réplicas seguidoras não aceitam escritas diretas de clientes; apenas o líder recebe e serializa gravações.",
+      "Incorreta: O ISR é composto estritamente por brokers membros do cluster que armazenam réplicas daquela partição.",
+      "Incorreta: O propósito basilar da replicação é justamente preservar os dados em disco e manter o serviço disponível perante panes de nós."
+    ]
+  },
+  {
+    "id": 31,
+    "category": "Multicast & Algoritmos Epidêmicos",
+    "topic": "Comunicação Multicast: A Distinção entre Receber e Entregar",
+    "question": "Na teoria de comunicação em grupo e protocolos de Multicast, os conceitos de 'Receber uma Mensagem' (Receive) e 'Entregar uma Mensagem' (Deliver) possuem significados operacionais estritamente distintos. Qual das seguintes opções expressa essa diferença conceitual com precisão acadêmica?",
+    "options": [
+      "Receber significa que a mensagem foi destruída por um firewall; Entregar significa que o emissor recebeu o pagamento pelo pacote.",
+      "Receber é o evento físico em que o pacote de rede atinge o subsistema de comunicação de baixo nível (kernel/middleware); Entregar é a ação formal executada pelo middleware de repassar a mensagem para a aplicação cliente ou camada de persistência superior, podendo o middleware reter pacotes temporariamente em buffers para garantir disciplinas de ordenação (FIFO, causal ou total).",
+      "Receber é uma operação de leitura de disco em banco de dados; Entregar é a gravação física na fita magnética.",
+      "Não existe nenhuma distinção entre receber e entregar; ambas ocorrem obrigatoriamente no mesmo nanossegundo.",
+      "Entregar refere-se exclusivamente ao envio físico da mensagem pelo remetente original."
+    ],
+    "answer": 1,
+    "explanation": "Conforme formalizado por Tanenbaum, Coulouris e Birman: a camada de rede não garante ordem estrita nem chegada coordenada de mensagens. Portanto, o middleware recebe (receive) pacotes à medida que chegam na interface. Para garantir semânticas de ordenação (como ordem total ou causal), o middleware mantém mensagens recebidas fora de ordem em uma fila de espera interna, entregando-as (deliver) para a aplicação de negócio apenas no momento exato em que a regra de ordenação acordada for satisfeita.",
+    "distractors": [
+      "Incorreta: Descrição leiga e metafórica sem relação com a teoria de sistemas distribuídos.",
+      "Incorreta: Termos não se referem a camadas de disco/fita magnética, mas ao pipeline do subsistema de comunicação de rede.",
+      "Incorreta: A distinção é o pilar indispensável para todos os algoritmos de ordenação em multicast.",
+      "Incorreta: O envio pelo remetente original denomina-se 'Multicast Send' ou 'Broadcast'."
+    ]
+  },
+  {
+    "id": 32,
+    "category": "Multicast & Algoritmos Epidêmicos",
+    "topic": "Multicast com Ordem Causal e Relógios Vetoriais",
+    "question": "Em um sistema de bate-papo distribuído com três participantes (P1, P2 e P3) utilizando um protocolo de Multicast com Ordem Causal: P1 envia a mensagem m1 ('Alguém viu meu gato?'). P2 recebe m1 e envia a mensagem m2 ('Eu vi seu gato perto da árvore'). Se a rede sofrer atrasos aleatórios e P3 receber os pacotes na ordem física [m2 primeiro, depois m1], como o middleware de Multicast Causal em P3 deve proceder?",
+    "options": [
+      "P3 deve entregar m2 imediatamente para o usuário e descartar m1 para sempre.",
+      "P3 identifica que a mensagem m2 possui dependência causal de m1 (m1 -> m2); portanto, o middleware de P3 retém m2 em um buffer de espera e não a entrega ao usuário até que m1 chegue fisicamente e seja entregue primeiro, garantindo que a resposta nunca seja exibida antes da pergunta.",
+      "P3 encerra o processo e emite um alerta de erro fatal do sistema operacional.",
+      "P3 inverte o texto de m2 e exibe caracteres aleatórios na tela.",
+      "O middleware de P3 retrocede o relógio físico da máquina para o horário da emissão de m1."
+    ],
+    "answer": 1,
+    "explanation": "No Multicast Causal, as mensagens carregam carimbos causais (tipicamente Relógios Vetoriais). Como m2 foi emitida após P2 ter visto m1, temos m1 -> m2. Ao receber m2 antes de m1, o middleware de P3 verifica o vetor de dependências de m2 e detecta que falta entregar m1. Ele suspende m2 em um buffer local até que m1 chegue, entregando primeiro m1 e imediatamente depois m2, preservando a coerência causal.",
+    "distractors": [
+      "Incorreta: Descartar m1 violaria a confiabilidade do protocolo e deixaria o usuário P3 sem contexto.",
+      "Incorreta: A chegada fora de ordem de pacotes é um comportamento esperado em redes assíncronas, não uma pane fatal.",
+      "Incorreta: Mensagens não sofrem corrupção proposital de texto.",
+      "Incorreta: Protocolos de middleware não alteram o relógio físico da máquina hospedeira."
+    ]
+  },
+  {
+    "id": 33,
+    "category": "Multicast & Algoritmos Epidêmicos",
+    "topic": "Multicast de Ordem Total (Total Order Multicast) e Máquinas de Estado Replicadas",
+    "question": "O Multicast de Ordem Total (Total Order Multicast) é o alicerce fundamental para a implementação do paradigma de Máquinas de Estados Replicadas (Replicated State Machines — RSM). Qual é a garantia formal provida pela Ordem Total e por que ela é indispensável para a coerência de bancos de dados replicados ativos?",
+    "options": [
+      "Ela garante que todos os nós entreguem mensagens em ordem alfabética inversa de seus conteúdos.",
+      "Ela garante que, se qualquer processo entregar a mensagem m1 antes da mensagem m2, então TODOS os processos do grupo devem obrigatoriamente entregar m1 antes de m2; isso assegura que todas as réplicas transitem exatamente pela mesma sequência determinística de estados, impedindo que os saldos ou dados dos bancos divirjam entre si.",
+      "Ela garante que todas as mensagens trafeguem na velocidade da luz sem consumir nenhuma energia elétrica.",
+      "Ela permite que cada réplica escolha arbitrariamente a ordem de execução de comandos para acelerar o tempo de resposta local.",
+      "Ela proíbe o envio de mais de uma mensagem por ano em toda a rede."
+    ],
+    "answer": 1,
+    "explanation": "Uma Máquina de Estados Replicada (RSM) baseia-se no princípio determinístico de Lamport e Schneider: se múltiplas réplicas partem do mesmo estado inicial $S_0$ e executam exatamente o mesmo conjunto de operações na exata mesma ordem ($op_1, op_2, \\dots, op_n$), todas atingirão compulsoriamente o mesmo estado final $S_n$. O Multicast de Ordem Total garante que, independentemente de atrasos locais de rede, todas as réplicas processem as mensagens na mesma sequência linear acordada.",
+    "distractors": [
+      "Incorreta: A ordenação não é alfabética, mas estabelecida por um sequenciador ou algoritmo de consenso (Paxos/Raft).",
+      "Incorreta: Nenhuma tecnologia pode anular as leis da física.",
+      "Incorreta: Se cada réplica executasse em ordens diferentes (ex.: debitar antes de depositar vs. depositar antes de debitar), os saldos finais divergiriam e a replicação falharia.",
+      "Incorreta: Protocolos de ordem total operam com milhares de transações por segundo."
+    ]
+  },
+  {
+    "id": 34,
+    "category": "Multicast & Algoritmos Epidêmicos",
+    "topic": "Protocolos Epidêmicos: Inundação (Flooding) vs. Fofoca (Gossiping)",
+    "question": "Em sistemas distribuídos massivos com dezenas de milhares de computadores, a disseminação de informações através de Inundação simples (Flooding) é notoriamente inviável quando comparada a protocolos de Fofoca (Gossiping). Qual é o comportamento de tráfego que torna o Gossiping escalável e sustentável em redes de larga escala?",
+    "options": [
+      "No Gossiping, cada nó retransmite todo pacote para todos os seus vizinhos físicos simultaneamente, gerando broadcast storm.",
+      "No Gossiping, cada nó executa um laço periódico e, em cada rodada, seleciona aleatoriamente apenas um número pequeno e fixo de vizinhos (fator de fofoca ou fanout k) para trocar informações; isso mantém o tráfego de rede individual rigorosamente constante e delimitado, enquanto a disseminação agregada cresce exponencialmente atingindo toda a rede em poucas rodadas.",
+      "No Gossiping, os computadores desligam suas placas de rede e comunicam-se exclusivamente através do alto-falante e microfone.",
+      "No Gossiping, as mensagens são entregues apenas para nós que possuem números IPs ímpares, descartando nós pares.",
+      "O Flooding é infinitamente superior ao Gossiping em todas as métricas de tráfego e latência."
+    ],
+    "answer": 1,
+    "explanation": "No Flooding, a retransmissão cega para todos os vizinhos gera replicação descontrolada de pacotes ($O(N^2)$ ou pior), congestionando enlaces e roteadores. No Gossiping (protocolos epidêmicos), o tráfego individual é estritamente limitado: cada nó contacta periodicamente apenas $k$ parceiros aleatórios ($k \\ll N$, ex.: $k=3$). Devido à matemática da propagação epidêmica, a informação alcança $N$ nós em apenas $O(\\log N)$ rodadas com altíssima resiliência a falhas de nós.",
+    "distractors": [
+      "Incorreta: Essa é a descrição exata do problema catastrófico de *Flooding*.",
+      "Incorreta: Afirmação cômica sobre microfones e alto-falantes.",
+      "Incorreta: Nós são selecionados aleatoriamente segundo distribuição probabilística uniforme, sem exclusão por paridade de IP.",
+      "Incorreta: Flooding é notoriamente inescalável para grandes redes."
+    ]
+  },
+  {
+    "id": 35,
+    "category": "Multicast & Algoritmos Epidêmicos",
+    "topic": "Modelos Epidêmicos Avançados: Anti-Entropia e Rumor Mongering",
+    "question": "A teoria de algoritmos epidêmicos para manutenção de réplicas em bancos de dados distribuídos (Demers et al., 1987) define dois modelos operacionais complementares: Anti-Entropia (Anti-Entropy) e Disseminação de Rumores (Rumor Mongering / Boatos). Qual das afirmativas abaixo descreve com exatidão o funcionamento do Rumor Mongering?",
+    "options": [
+      "Um nó que possui uma nova atualização passa a transmiti-la periodicamente para nós vizinhos aleatórios; contudo, se ao contatar um parceiro ele descobrir que este já possuía aquela informação previamente, o nó emissor cessa ativamente a disseminação do rumor com uma probabilidade configurada p_stop, evitando o desperdício perpétuo de tráfego de rede.",
+      "No Rumor Mongering, todos os nós do sistema são obrigados a apagar seus bancos de dados se uma mentira for detectada.",
+      "A Anti-Entropia opera enviando dados apenas para máquinas que estejam fisicamente desligadas da tomada.",
+      "No Rumor Mongering, uma atualização nunca cessa de circular, gerando um laço infinito que consome 100% da Internet.",
+      "A abordagem Push-Pull de Anti-Entropia exige O(N^3) rodadas para disseminar um dado em uma rede de N nós."
+    ],
+    "answer": 0,
+    "explanation": "No modelo de Rumor Mongering (propagação de boatos), o nó infectado com uma novidade espalha-a ativamente. Se ele contactar outro nó e descobrir que o dado já era conhecido, a novidade perdeu o valor ('o boato esfriou'). O nó decide parar de transmitir com probabilidade $p_{\text{stop}}$. Isso estabiliza e extingue o tráfego na rede. Em contraste, a Anti-Entropia opera continuamente em segundo plano (via push-pull em $O(\\log N)$ rodadas) para sincronizar nós retardatários que o rumor não atingiu.",
+    "distractors": [
+      "Incorreta: Rumor mongering é um termo técnico inspirado em epidemiologia e sociologia, sem relação com mentiras ou deleção de bancos.",
+      "Incorreta: Anti-entropia requer que os nós parceiros estejam ativos e comunicando-se pela rede.",
+      "Incorreta: O mecanismo central de $p_{\text{stop}}$ foi concebido exatamente para *impedir* que o rumor circule indefinidamente.",
+      "Incorreta: A teoria prova que a abordagem Push-Pull de anti-entropia converge em $O(\\log N)$ rodadas, e não $O(N^3)$."
+    ]
+  },
+  {
+    "id": 36,
+    "category": "Nomenclatura & DNS",
+    "topic": "Nomes, Identificadores Puros e Endereços",
+    "question": "Na teoria de Nomenclatura de Sistemas Distribuídos, nomes amigáveis, identificadores puros e endereços desempenham papéis conceitualmente distintos. Para que um rótulo seja formalmente classificado como um Identificador Puro (Pure Identifier), quais propriedades axiomáticas ele deve satisfazer obrigatoriamente?",
+    "options": [
+      "Ele deve conter o nome do autor do software e a data de compilação em código ASCII legível.",
+      "Cada identificador refere-se a, no máximo, uma entidade; cada entidade é referenciada por, no máximo, um identificador; e um identificador sempre se refere à mesma entidade ao longo de toda a sua existência (a reutilização histórica de identificadores é terminantemente proibida).",
+      "Ele deve ser alterado a cada 10 segundos pelo sistema operacional para garantir segurança de rede.",
+      "Ele deve indicar compulsoriamente o endereço IP e a porta TCP física onde o servidor reside no momento.",
+      "Ele deve ser uma sequência de texto de no máximo 8 caracteres alfanuméricos."
+    ],
+    "answer": 1,
+    "explanation": "Segundo a definição matemática canônica de Tanenbaum e van Steen: um Identificador é um nome que possui relação estrita 1:1 com a entidade (injetividade e surjetividade restrita) e cuja associação é perpétua e imutável (não pode ser reutilizado para outra entidade no futuro). Ele difere do Endereço (que indica o ponto de acesso físico transitório) e do Nome Amigável (que possui semântica humana e pode ser reatribuído).",
+    "distractors": [
+      "Incorreta: Identificadores puros são comumente sequências numéricas aleatórias (UUIDs, hashes de 128/160 bits) sem semântica legível.",
+      "Incorreta: Alterar o rótulo violaria a propriedade axiomática da imutabilidade temporal do identificador.",
+      "Incorreta: O endereço IP e a porta representam o *Endereço* (ponto de acesso transitório), e não o identificador puro da entidade.",
+      "Incorreta: Não há restrição técnica arbitrária de 8 caracteres; UUIDs possuem 128 bits e hashes SHA possuem 160 a 256 bits."
+    ]
+  },
+  {
+    "id": 37,
+    "category": "Nomenclatura & DNS",
+    "topic": "Abordagens Baseadas em Local Fixo (Home-Based) e Roteamento Triangular",
+    "question": "O protocolo Mobile IP utiliza uma abordagem baseada em local fixo (Home-Based) para viabilizar a comunicação com nós móveis que transitam entre diferentes redes sem fio. Qual é o fenômeno denominado 'Roteamento Triangular' (Triangle Routing) inerente a essa arquitetura?",
+    "options": [
+      "O fenômeno em que exatamente três nós móveis colidem suas transmissões de rádio simultaneamente na mesma antena.",
+      "A ineficiência geométrica de roteamento onde pacotes enviados por um nó cliente devem viajar primeiro até o Home Agent de origem do nó móvel (que pode estar em outro continente), para que este os encaminhe até o Care-of Address temporário onde o nó móvel se encontra atualmente, mesmo que o emissor e o nó móvel estejam fisicamente na mesma sala.",
+      "Um ataque criptográfico em que um hacker intercepta pacotes usando três antenas trianguladas no telhado.",
+      "A técnica que permite duplicar a velocidade da luz em enlaces de fibra óptica através de reflexões em prismas triangulares.",
+      "A exigência de que todos os pacotes IP tenham formato triangular em vez de retangular."
+    ],
+    "answer": 1,
+    "explanation": "No Mobile IP clássico, a comunicação com a entidade móvel é sempre endereçada ao seu Home Address fixo. O Home Agent na rede de origem intercepta o pacote e o encapsula em um túnel IP até o Care-of Address (CoA) atual da entidade. Se o cliente e o nó móvel estiverem ambos em São Paulo, mas o Home Agent residir em Tóquio, os pacotes viajam SP -> Tóquio -> SP, formando um 'triângulo' geográfico ineficiente com alta latência desnecessária.",
+    "distractors": [
+      "Incorreta: Não se refere a colisões de rádio na camada de enlace (MAC).",
+      "Incorreta: Trata-se de um problema de eficiência topológica de roteamento, não de um ataque criptográfico.",
+      "Incorreta: A velocidade da luz na fibra é uma constante física intransponível.",
+      "Incorreta: Afirmação sem nenhum sentido computacional sobre o formato geométrico de pacotes digitais."
+    ]
+  },
+  {
+    "id": 38,
+    "category": "Nomenclatura & DNS",
+    "topic": "Serviços de Localização Hierárquicos (HLS)",
+    "question": "Os Serviços de Localização Hierárquicos (Hierarchical Location Services — HLS), propostos por van Steen et al., organizam a rede em uma árvore hierárquica de domínios geográficos para rastrear entidades móveis. Qual é a regra fundamental de navegação adotada pelo HLS em operações de busca (lookup) que minimiza a latência e o tráfego internacional?",
+    "options": [
+      "A consulta sempre começa obrigatoriamente no nó raiz planetário da árvore, que desce ponteiros até a folha.",
+      "A busca começa no nó folha local onde o cliente reside; se a folha não conhecer a entidade, a requisição sobe na árvore hierárquica nível a nível apenas até encontrar o primeiro ancestral comum que contenha um registro para a entidade, e a partir daí desce diretamente até a folha de destino, garantindo que buscas por recursos locais sejam resolvidas internamente na rede local sem gerar tráfego em enlaces distantes.",
+      "O HLS utiliza difusão por satélite geoestacionário para todos os nós da Terra em cada consulta.",
+      "No HLS, nenhuma árvore é construída; os nós conectam-se de forma 100% não-estruturada via flooding cego.",
+      "O HLS proíbe que entidades móveis mudem de endereço mais de uma vez por mês."
+    ],
+    "answer": 1,
+    "explanation": "O grande trunfo do HLS é a localidade geográfica estrita de consulta. Como os domínios mapeiam a geografia física (campus -> cidade -> país -> continente -> raiz), se uma entidade móvel estiver no mesmo campus que o solicitante, o nó local da folha ou o nó pai municipal já possui o ponteiro descendente. A busca resolve-se localmente sem trafegar pacotes para servidores de outros países ou continentes.",
+    "distractors": [
+      "Incorreta: Se todas as buscas começassem na raiz global, a raiz tornar-se-ia um gargalo monstruoso de tráfego mundial.",
+      "Incorreta: HLS baseia-se em roteamento por ponteiros em árvores terrestres, não difusão via satélite.",
+      "Incorreta: HLS é explicitamente um serviço estruturado e hierárquico, oposto a flooding cego.",
+      "Incorreta: O propósito do HLS é justamente suportar alta mobilidade contínua de entidades."
+    ]
+  },
+  {
+    "id": 39,
+    "category": "Nomenclatura & DNS",
+    "topic": "Sistema DNS: Resolução Iterativa vs. Recursiva e Caching",
+    "question": "No Sistema de Nomes de Domínio (DNS), qual é a diferença operacional crítica entre a Resolução Iterativa e a Resolução Recursiva executada durante a tradução de um nome (como `aluno.ufabc.edu.br`), e qual é o papel do DNS Caching?",
+    "options": [
+      "Na resolução iterativa, o servidor consultado desliga-se após responder; na resolução recursiva, o servidor duplica a internet.",
+      "Na resolução iterativa, se o servidor consultado não possui a resposta final, ele responde ao cliente com a referência (endereço IP) do próximo servidor de nomes autoritativo a ser consultado, transferindo o trabalho de navegação para o resolvedor cliente; na resolução recursiva, o servidor consultado assume a obrigação de navegar pela árvore até obter o resultado final e devolvê-lo pronto ao cliente. O DNS Caching permite que servidores recursivos locais armazenem respostas intermediárias em memória RAM pelo tempo estipulado pelo TTL, resolvendo consultas subsequentes instantaneamente sem trafegar pacotes externos.",
+      "A resolução recursiva é proibida na Internet moderna por violar as leis de direitos autorais de domínios.",
+      "Na resolução iterativa, a consulta trafega exclusivamente por cabos submarinos, enquanto na recursiva utiliza apenas ondas de rádio.",
+      "O DNS Caching é uma falha de segurança que deve ser desativada obrigatoriamente em todos os servidores do mundo."
+    ],
+    "answer": 1,
+    "explanation": "No DNS: (1) Resolução Iterativa: o servidor responde 'Eu não sei o IP final, mas pergunte para o servidor X' (usada pelos servidores Raiz e TLD para evitar exaustão de memória com milhões de clientes pendurados); (2) Resolução Recursiva: o resolvedor local do provedor/empresa busca toda a cadeia em nome do cliente e entrega a resposta final; (3) DNS Caching: salva o resultado na RAM pelo período do TTL (Time-to-Live); uma consulta repetida pelo mesmo domínio é respondida em 1 milissegundo localmente sem tocar a Internet.",
+    "distractors": [
+      "Incorreta: Afirmações sem nenhum sentido técnico de desligamento ou duplicação.",
+      "Incorreta: A resolução recursiva é o padrão operacional empregado por todos os provedores e resolvedores públicos (como 8.8.8.8 e 1.1.1.1).",
+      "Incorreta: A camada de transporte DNS (UDP/TCP porta 53) é agnóstica ao meio físico de transmissão.",
+      "Incorreta: O DNS Caching é o principal mecanismo que viabiliza a estabilidade e escalabilidade de toda a Internet mundial."
+    ]
+  },
+  {
+    "id": 40,
+    "category": "DHT Chord & Teorema CAP",
+    "topic": "Hashing Consistente (Consistent Hashing) e Migração Mínima",
+    "question": "Considere um sistema de armazenamento distribuído em larga escala contendo K chaves de dados espalhadas entre N nós servidores. Qual é a vantagem matemática decisiva de utilizar Hashing Consistente (Consistent Hashing) em vez da função clássica de partição modular hash(chave) mod N quando novos servidores são adicionados ou removidos do cluster?",
+    "options": [
+      "A partição modular hash(chave) mod N garante que nenhuma chave jamais precise ser movida quando N se altera.",
+      "O hashing consistente mapeia tanto nós quanto chaves sobre o mesmo espaço circular contínuo; quando um nó é adicionado ou removido da rede, apenas em média O(K/N) chaves precisam ser migradas entre nós adjacentes, enquanto a função modular clássica hash(chave) mod N forçaria a redistribuição e transferência maciça de quase 100% de todas as chaves do sistema pela rede.",
+      "O hashing consistente impede que qualquer nó da rede sofra panes de hardware ou quebra de fonte de alimentação.",
+      "O hashing consistente elimina a necessidade de usar funções de dispersão criptográficas, operando através de sorteios manuais.",
+      "A partição modular tradicional possui complexidade O(1) de migração de chaves em qualquer reorganização de nós."
+    ],
+    "answer": 1,
+    "explanation": "Na partição ingênua $H(k) \\pmod N$, se o número de nós muda de $N$ para $N+1$, o divisor do módulo altera-se para quase todos os números inteiros; o resultado do módulo muda para praticamente $100\\%$ das chaves, gerando migração catastrófica de dados em massa. O Hashing Consistente (Karger et al., 1997) resolve isso mapeando nós e chaves em um anel: ao adicionar um nó, ele 'rouba' apenas as chaves do seu vizinho imediato sucessor, limitando a migração estritamente a uma fração média de $O(K/N)$ chaves.",
+    "distractors": [
+      "Incorreta: A função modular clássica provoca a migração de quase todas as chaves quando N se altera.",
+      "Incorreta: Hashing consistente é um algoritmo lógico de distribuição de dados, sem influência física sobre hardware.",
+      "Incorreta: O hashing consistente depende visceralmente de funções hash criptográficas de alta entropia (como SHA-1 ou SHA-256) para garantir distribuição uniforme.",
+      "Incorreta: A partição modular tradicional tem complexidade de migração catastrófica de $O(K)$, movendo quase tudo."
+    ]
+  },
+  {
+    "id": 41,
+    "category": "DHT Chord & Teorema CAP",
+    "topic": "Topologia em Anel do Chord e a Regra do Sucessor",
+    "question": "No protocolo Chord, o espaço de identificadores é estruturado em um anel lógico unidirecional módulo 2^M. Seja um anel com M = 4 bits (identificadores possíveis de 0 a 15) contendo ativos os nós físicos com IDs {0, 3, 7, 12}. Segundo a regra formal de sucessão do Chord (succ(k)), em qual nó físico serão armazenadas, respectivamente, as chaves com identificadores k = 2, k = 7 e k = 14?",
+    "options": [
+      "k = 2 no Nó 0; k = 7 no Nó 3; k = 14 no Nó 7.",
+      "k = 2 no Nó 3; k = 7 no Nó 7; k = 14 no Nó 0.",
+      "k = 2 no Nó 12; k = 7 no Nó 0; k = 14 no Nó 3.",
+      "Todas as chaves serão armazenadas no Nó 0 porque ele possui o menor número identificador.",
+      "As chaves são descartadas porque o anel não possui nós em todas as 16 posições possíveis."
+    ],
+    "answer": 1,
+    "explanation": "A regra de ouro do Chord estabelece: a chave k é armazenada no primeiro nó físico cujo ID seja maior ou igual a k no sentido horário (succ(k)).\n1. Para k = 2: o primeiro nó com ID >= 2 é o Nó 3. Logo, succ(2) = 3.\n2. Para k = 7: como existe um nó físico com ID exatamente 7, succ(7) = 7.\n3. Para k = 14: não há nós físicos maiores que 14 até o fim do anel (15); cruzando o ponto zero (módulo 16), o primeiro nó no sentido horário é o Nó 0. Logo, succ(14) = 0.\nPortanto: Nó 3, Nó 7 e Nó 0.",
+    "distractors": [
+      "Incorreta: Atribuiu chaves aos nós predecessores em vez dos sucessores no sentido horário.",
+      "Incorreta: Cálculos modulares errôneos sem seguir a regra de succ(k).",
+      "Incorreta: O Chord distribui as chaves uniformemente pelo anel, não acumulando tudo no nó zero.",
+      "Incorreta: O anel do Chord é esparso por definição; os nós físicos ocupam apenas uma pequena fração dos 2^M identificadores possíveis."
+    ]
+  },
+  {
+    "id": 42,
+    "category": "DHT Chord & Teorema CAP",
+    "topic": "Finger Tables no Chord: Cálculo de Entradas eclosestPrecedingNode",
+    "question": "Para acelerar a resolução de buscas de O(N) para O(log N), cada nó p em um anel Chord de M bits mantém uma tabela de atalhos (Finger Table) com M entradas, calculadas por FT_p[i] = succ( (p + 2^(i-1)) mod 2^M ), para i = 1 .. M. Considere um anel com M = 4 bits (0 a 15) com os nós ativos {1, 4, 9, 13}. Quais são os nós físicos apontados pelas 4 entradas da Finger Table do Nó 4 (FT_4)?",
+    "options": [
+      "FT_4 = [Nó 1, Nó 4, Nó 9, Nó 13].",
+      "FT_4 = [Nó 9, Nó 9, Nó 9, Nó 13], calculados a partir das posições teóricas 5, 6, 8 e 12.",
+      "FT_4 = [Nó 4, Nó 4, Nó 4, Nó 4].",
+      "FT_4 = [Nó 13, Nó 9, Nó 4, Nó 1].",
+      "A Finger Table do Nó 4 não pode ser calculada porque 4 é um número par."
+    ],
+    "answer": 1,
+    "explanation": "Calculando a fórmula FT_p[i] = succ((p + 2^(i-1)) mod 16) para o Nó p = 4:\n- Entrada i = 1: pos = (4 + 2^0) = 4 + 1 = 5. O primeiro nó físico >= 5 é o Nó 9. Logo, FT_4[1] = 9.\n- Entrada i = 2: pos = (4 + 2^1) = 4 + 2 = 6. O primeiro nó físico >= 6 é o Nó 9. Logo, FT_4[2] = 9.\n- Entrada i = 3: pos = (4 + 2^2) = 4 + 4 = 8. O primeiro nó físico >= 8 é o Nó 9. Logo, FT_4[3] = 9.\n- Entrada i = 4: pos = (4 + 2^3) = 4 + 8 = 12. O primeiro nó físico >= 12 é o Nó 13. Logo, FT_4[4] = 13.\nPortanto: [Nó 9, Nó 9, Nó 9, Nó 13].",
+    "distractors": [
+      "Incorreta: Colocou a lista de todos os nós ativos sem aplicar a fórmula de saltos exponenciais.",
+      "Incorreta: Apontou todas as entradas para o próprio nó.",
+      "Incorreta: Inverteu os valores sem correspondência com a fórmula matemática.",
+      "Incorreta: A paridade do identificador não interfere no cálculo matemático das potências de dois do Chord."
+    ]
+  },
+  {
+    "id": 43,
+    "category": "DHT Chord & Teorema CAP",
+    "topic": "Complexidade de Busca O(log N) e Estabilização no Chord",
+    "question": "A respeito da eficiência algorítmica e da tolerância ao dinamismo de rede (churn) no protocolo Chord, assinale a afirmativa tecnicamente correta:",
+    "options": [
+      "O número esperado de saltos de rede necessários para resolver uma consulta de chave no Chord é O(N^2), sendo mais lento que uma busca sequencial.",
+      "Cada salto de roteamento no Chord utilizando a rotina `closestPrecedingNode` reduz a distância angular restante até o nó destino em pelo menos metade, resultando matematicamente em uma complexidade de busca de O(log N) saltos com alta probabilidade; para manter a topologia íntegra contra a saída ou falha inesperada de nós, cada nó executa ciclicamente o protocolo assíncrono de Estabilização (`stabilize` e `notify`) e mantém uma lista com os seus r sucessores imediatos.",
+      "No Chord, a rotina `stabilize()` exige que toda a rede mundial pare de atender consultas durante 1 hora por dia para sincronização central.",
+      "A complexidade de busca no Chord é O(1) e cada nó precisa armazenar obrigatoriamente o endereço IP de todos os computadores da Internet em sua memória.",
+      "Se o sucessor imediato de um nó falhar no Chord, o anel quebra-se permanentemente e nunca mais pode ser reparado."
+    ],
+    "answer": 1,
+    "explanation": "O Teorema fundamental do Chord (Stoica et al., 2001) prova que o roteamento baseado em Finger Tables atua como uma busca binária no anel, reduzindo a distância pela metade a cada salto e garantindo resolução em $O(\\log N)$ saltos. Para tolerar o dinamismo (churn) sem coordenação central, cada nó roda periodicamente `stabilize()` e `notify()`, além de manter uma 'Successor List' com $r$ nós sucessores: se o primeiro falhar, o segundo sucessor assume imediatamente, mantendo o anel conectado.",
+    "distractors": [
+      "Incorreta: O custo de busca é logarítmico ($O(\\log N)$), e não quadrático ($O(N^2)$).",
+      "Incorreta: A estabilização é totalmente assíncrona, concorrente e local em segundo plano, sem interromper nenhuma consulta.",
+      "Incorreta: Armazenar todos os nós em cada máquina exigiria memória $O(N)$ e violaria o objetivo de uma DHT; o Chord armazena apenas $M$ dedos ($O(\\log N)$ de estado).",
+      "Incorreta: A lista de múltiplos sucessores e o algoritmo de estabilização garantem cicatrização contínua e tolerância a panes."
+    ]
+  },
+  {
+    "id": 44,
+    "category": "DHT Chord & Teorema CAP",
+    "topic": "Teorema CAP e o Teorema PACELC",
+    "question": "O Teorema CAP (Brewer, Gilbert & Lynch) e sua extensão moderna, o Teorema PACELC (Abadi, 2012), sintetizam os limites fundamentais de sistemas de dados distribuídos replicados. Qual das seguintes afirmativas expressa com precisão a consequência prática desses teoremas para o projeto de arquiteturas distribuídas?",
+    "options": [
+      "O Teorema CAP prova que é possível atingir 100% de Consistência Forte, 100% de Disponibilidade e 100% de Tolerância a Partições simultaneamente se utilizarmos discos de estado sólido (SSDs) velozes.",
+      "Como redes físicas distribuídas na Internet inevitavelmente sofrem partições (enlaces rompidos ou atrasos indistinguíveis de falhas), a Tolerância a Partições (P) é mandatória. Portanto, durante uma partição de rede, o arquiteto deve escolher entre Consistência (CP — recusar requisições em nós isolados para evitar divergência) ou Disponibilidade (AP — aceitar escritas em ambos os lados e admitir dados inconsistentes temporários via consistência eventual); e, mesmo quando o sistema opera normalmente sem partições (Else), deve escolher entre Latência (L) e Consistência (C).",
+      "O Teorema PACELC determina que bancos de dados NoSQL são proibidos de utilizar réplicas em rede.",
+      "Em um sistema AP (Disponível e Tolerante a Partições), todas as leituras são matematicamente garantidas de serem linearizáveis e instantâneas.",
+      "O Teorema CAP aplica-se exclusivamente a computadores monoprocessados sem conexão de rede."
+    ],
+    "answer": 1,
+    "explanation": "O Teorema CAP estabelece que, diante de uma partição de rede (P), deve-se escolher entre Consistência (C) e Disponibilidade (A). Daniel Abadi estendeu isso no Teorema PACELC: 'Se houver Partição (P), escolha entre Disponibilidade (A) e Consistência (C); Senão (Else - E), escolha entre Latência (L) e Consistência (C)'. Isso resume por que sistemas distribuídos não possuem soluções mágicas: mesmo em operação normal sem quebras de enlaces, garantir consistência estrita impõe latência de round-trips de rede entre réplicas.",
+    "distractors": [
+      "Incorreta: O teorema prova matematicamente a *impossibilidade* de garantir as três propriedades simultaneamente na presença de partições de rede, independentemente da velocidade do hardware.",
+      "Incorreta: Bancos NoSQL baseiam-se justamente em replicação distribuída em rede (alguns optando por AP como Cassandra, outros por CP como HBase/MongoDB).",
+      "Incorreta: Sistemas AP sacrificam a linearizabilidade/consistência forte imediata em prol de permanecerem online durante partições.",
+      "Incorreta: O teorema aplica-se explicitamente e exclusivamente a sistemas distribuídos de dados conectados por rede sujeita a falhas."
+    ]
+  }
+];
+
+    // State
+    const userAnswers = {}; // questionId: { selectedOption: number, isCorrect: boolean }
+    let currentFilter = 'all';
+
+    const LETTERS = ['A', 'B', 'C', 'D', 'E'];
+
+    // Sidebar Toggle Logic
+    function toggleSidebar() {
+      if (window.innerWidth <= 900) {
+        document.body.classList.toggle('sidebar-open');
+      } else {
+        document.body.classList.toggle('sidebar-collapsed');
+      }
+    }
+
+    function closeSidebarMobile() {
+      document.body.classList.remove('sidebar-open');
+    }
+
+    // Audio Feedback (Web Audio API)
+    let audioCtx = null;
+    function playChime(isSuccess) {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        if (isSuccess) {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+          osc.frequency.exponentialRampToValueAtTime(659.25, audioCtx.currentTime + 0.15); // E5
+          gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.3);
+        } else {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(260, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(180, audioCtx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.09, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.3);
+        }
+      } catch (e) {
+        // Ignora se indisponível
+      }
+    }
+
+    // Render questions
+    function renderQuestions() {
+      const container = document.getElementById('questions-container');
+      container.innerHTML = '';
+
+      let visibleCount = 0;
+
+      QUESTIONS.forEach((q) => {
+        // Filter logic
+        if (currentFilter !== 'all' && currentFilter !== 'only_wrong') {
+          if (q.category !== currentFilter) return;
+        } else if (currentFilter === 'only_wrong') {
+          const ans = userAnswers[q.id];
+          if (!ans || ans.isCorrect) return;
+        }
+
+        visibleCount++;
+        const isAnswered = !!userAnswers[q.id];
+        const userAnswer = userAnswers[q.id];
+
+        const card = document.createElement('div');
+        card.className = `question-card ${isAnswered ? (userAnswer.isCorrect ? 'answered correct-card' : 'answered wrong-card') : ''}`;
+        card.id = `q-card-${q.id}`;
+
+        let optionsHtml = '';
+        q.options.forEach((optText, optIdx) => {
+          let optClass = 'option-item';
+          if (isAnswered) {
+            optClass += ' locked';
+            if (optIdx === q.answer) {
+              optClass += ' correct';
+            } else if (optIdx === userAnswer.selectedOption) {
+              optClass += ' wrong';
+            }
+          }
+
+          optionsHtml += `
+            <div class="${optClass}" onclick="handleAnswer(${q.id}, ${optIdx})">
+              <span class="option-letter">${LETTERS[optIdx]}</span>
+              <span>${escapeHtml(optText)}</span>
+            </div>
+          `;
+        });
+
+        let distractorsHtml = '';
+        if (q.distractors && q.distractors.length > 0) {
+          distractorsHtml = `
+            <div class="exp-section-title">🔍 Análise das Alternativas Incorretas:</div>
+            <ul class="distractors-list">
+              ${q.distractors.map(d => `<li>${escapeHtml(d)}</li>`).join('')}
+            </ul>
+          `;
+        }
+
+        const explanationHtml = `
+          <div class="explanation-box ${isAnswered ? 'show' : ''}" id="exp-box-${q.id}">
+            <div class="exp-badge ${isAnswered ? (userAnswer.isCorrect ? 'success' : 'danger') : ''}">
+              ${isAnswered ? (userAnswer.isCorrect ? '✅ Resposta Correta!' : '❌ Resposta Incorreta!') : ''}
+              (Alternativa Correta: ${LETTERS[q.answer]})
+            </div>
+            
+            <div class="exp-section-title">💡 Justificativa Teórica Detalhada:</div>
+            <div class="exp-text">${escapeHtml(q.explanation)}</div>
+
+            ${distractorsHtml}
+          </div>
+        `;
+
+        card.innerHTML = `
+          <div class="q-meta">
+            <div>
+              <span class="q-number">Questão ${q.id}</span>
+              <span class="q-category">${escapeHtml(q.category)}</span>
+            </div>
+            <div class="q-topic">Tópico: ${escapeHtml(q.topic)}</div>
+          </div>
+          <div class="q-text">${escapeHtml(q.question)}</div>
+          <div class="options-list" id="opts-${q.id}">
+            ${optionsHtml}
+          </div>
+          ${explanationHtml}
+        `;
+
+        container.appendChild(card);
+      });
+
+      if (visibleCount === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 50px 20px; color: var(--text-muted); background: var(--bg-card); border-radius: var(--card-radius); border: 1px dashed var(--border);">
+            <h3>Nenhuma questão corresponde ao filtro selecionado.</h3>
+            ${currentFilter === 'only_wrong' ? '<p style="margin-top: 8px;">Parabéns! Você ainda não errou nenhuma questão ou não há questões erradas registradas.</p>' : ''}
+            <button class="side-btn primary" style="width: auto; margin: 15px auto 0;" onclick="applyCategoryFilter('all')">Ver Todas as Questões</button>
+          </div>
+        `;
+      }
+
+      updateLiveStats();
+    }
+
+    // Handle user answering
+    function handleAnswer(questionId, selectedIdx) {
+      if (userAnswers[questionId]) return; // already answered
+
+      const q = QUESTIONS.find(item => item.id === questionId);
+      if (!q) return;
+
+      const isCorrect = (selectedIdx === q.answer);
+      userAnswers[questionId] = { selectedOption: selectedIdx, isCorrect: isCorrect };
+
+      playChime(isCorrect);
+
+      // Re-render this specific card smoothly
+      const card = document.getElementById(`q-card-${questionId}`);
+      if (card) {
+        card.className = `question-card answered ${isCorrect ? 'correct-card' : 'wrong-card'}`;
+        
+        const optsContainer = document.getElementById(`opts-${questionId}`);
+        const optionItems = optsContainer.querySelectorAll('.option-item');
+        
+        optionItems.forEach((optEl, idx) => {
+          optEl.classList.add('locked');
+          if (idx === q.answer) {
+            optEl.classList.add('correct');
+          } else if (idx === selectedIdx) {
+            optEl.classList.add('wrong');
+          }
+        });
+
+        const expBox = document.getElementById(`exp-box-${questionId}`);
+        if (expBox) {
+          expBox.classList.add('show');
+          const badge = expBox.querySelector('.exp-badge');
+          if (badge) {
+            badge.className = `exp-badge ${isCorrect ? 'success' : 'danger'}`;
+            badge.innerHTML = `${isCorrect ? '✅ Resposta Correta!' : '❌ Resposta Incorreta!'} (Alternativa Correta: ${LETTERS[q.answer]})`;
+          }
+        }
+      }
+
+      updateLiveStats();
+      updateDiagnostic();
+    }
+
+    // Update stats bar
+    function updateLiveStats() {
+      const answeredKeys = Object.keys(userAnswers);
+      const totalAnswered = answeredKeys.length;
+      const totalQuestions = QUESTIONS.length;
+      
+      let correctCount = 0;
+      let wrongCount = 0;
+      
+      answeredKeys.forEach(k => {
+        if (userAnswers[k].isCorrect) correctCount++;
+        else wrongCount++;
+      });
+
+      const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
+      const progressPercent = Math.round((totalAnswered / totalQuestions) * 100);
+
+      // Sidebar stats
+      document.getElementById('side-stat-answered').innerText = totalAnswered;
+      document.getElementById('side-stat-total').innerText = totalQuestions;
+      document.getElementById('side-stat-correct').innerText = correctCount;
+      document.getElementById('side-stat-wrong').innerText = wrongCount;
+      document.getElementById('side-percent').innerText = `${accuracy}%`;
+      document.getElementById('side-wrong-count').innerText = wrongCount;
+      document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+
+      // Top bar stats
+      document.getElementById('top-answered').innerText = `${totalAnswered}/${totalQuestions}`;
+      document.getElementById('top-correct').innerText = correctCount;
+      document.getElementById('top-wrong').innerText = wrongCount;
+    }
+
+    // Update diagnostic evaluation
+    function updateDiagnostic() {
+      const answeredKeys = Object.keys(userAnswers);
+      if (answeredKeys.length === 0) return;
+
+      let totalCorrect = 0;
+      answeredKeys.forEach(k => {
+        if (userAnswers[k].isCorrect) totalCorrect++;
+      });
+
+      const totalAnswered = answeredKeys.length;
+      const overallPercent = Math.round((totalCorrect / totalAnswered) * 100);
+
+      document.getElementById('res-score').innerText = totalCorrect;
+      document.getElementById('res-total').innerText = `/ ${totalAnswered} respondidas`;
+
+      const badge = document.getElementById('res-badge');
+      const desc = document.getElementById('res-desc');
+
+      if (overallPercent >= 80) {
+        badge.className = 'badge-evaluation high';
+        badge.innerText = '🏆 Domínio Avançado em Sistemas Distribuídos';
+        desc.innerText = 'Excelente consistência teórica! Você demonstra forte apreensão dos conceitos de Tanenbaum, modelos formais e arquiteturas modernas.';
+      } else if (overallPercent >= 60) {
+        badge.className = 'badge-evaluation medium';
+        badge.innerText = '📘 Nível Intermediário — Pequenas Lacunas Conceituais';
+        desc.innerText = 'Bom aproveitamento geral, mas foram identificadas fragilidades pontuais em certos domínios de arquitetura ou algoritmos.';
+      } else {
+        badge.className = 'badge-evaluation low';
+        badge.innerText = '🚨 Necessita Revisão Urgente de Conteúdos';
+        desc.innerText = 'Atenção: sua taxa de acertos está abaixo de 60%. Recomendamos revisar o material didático e refazer os tópicos prioritários apontados abaixo.';
+      }
+
+      // Category breakdown
+      const categories = [
+        { name: 'Fundamentos & Modelos Temporais', ch: 'Capítulo 1' },
+        { name: 'Taxonomia & Paradigmas', ch: 'Capítulo 2' },
+        { name: 'Arquiteturas de Software', ch: 'Capítulo 3' },
+        { name: 'Processos, Threads & Servidores', ch: 'Capítulo 4' },
+        { name: 'Comunicação, RPC & Mensageria', ch: 'Capítulo 5' },
+        { name: 'Multicast & Algoritmos Epidêmicos', ch: 'Capítulo 5' },
+        { name: 'Nomenclatura & DNS', ch: 'Capítulo 6' },
+        { name: 'DHT Chord & Teorema CAP', ch: 'Capítulos 7 e 8' }
+      ];
+
+      const diagGrid = document.getElementById('diagnosis-grid');
+      diagGrid.innerHTML = '';
+
+      const weakTopics = [];
+
+      categories.forEach(cat => {
+        const catQuestions = QUESTIONS.filter(q => q.category === cat.name);
+        if (catQuestions.length === 0) return;
+
+        let catAnswered = 0;
+        let catCorrect = 0;
+
+        catQuestions.forEach(q => {
+          if (userAnswers[q.id]) {
+            catAnswered++;
+            if (userAnswers[q.id].isCorrect) catCorrect++;
+          }
+        });
+
+        const percent = catAnswered > 0 ? Math.round((catCorrect / catAnswered) * 100) : 0;
+        let color = '#ef4444'; // red
+        let statusText = 'Ponto Fraco / Crítico';
+        
+        if (percent >= 80) {
+          color = '#10b981'; // green
+          statusText = 'Domínio Excelente';
+        } else if (percent >= 60) {
+          color = '#f59e0b'; // amber
+          statusText = 'Aproveitamento Médio';
+        }
+
+        if (catAnswered > 0 && percent < 70) {
+          weakTopics.push({
+            category: cat.name,
+            chapter: cat.ch,
+            correct: catCorrect,
+            total: catAnswered,
+            percent: percent
+          });
+        }
+
+        const card = document.createElement('div');
+        card.className = 'diag-card';
+        card.innerHTML = `
+          <div class="diag-title">
+            <span>${cat.name}</span>
+            <span style="color: ${color}; font-weight: 800;">${catCorrect}/${catAnswered} (${percent}%)</span>
+          </div>
+          <div class="diag-bar-bg">
+            <div class="diag-bar-fill" style="width: ${percent}%; background-color: ${color};"></div>
+          </div>
+          <div class="diag-recommendation">
+            Status: <strong>${statusText}</strong> | Ref. Teórica: <em>${cat.ch}</em>
+          </div>
+        `;
+        diagGrid.appendChild(card);
+      });
+
+      // Study plan
+      const planContainer = document.getElementById('study-plan-container');
+      const planList = document.getElementById('study-plan-list');
+
+      if (weakTopics.length === 0) {
+        if (totalAnswered < 10) {
+          planList.innerHTML = '<p style="color: #cbd5e1; font-size: 0.92rem;">Continue respondendo as questões para que o sistema consiga traçar seu plano de estudos personalizado com precisão estatística.</p>';
+        } else {
+          planContainer.style.borderColor = '#10b981';
+          planContainer.style.background = 'rgba(16, 185, 129, 0.08)';
+          planList.innerHTML = '<p style="color: #34d399; font-weight: 600; font-size: 0.92rem;">🎉 Parabéns! Você atingiu aproveitamento acima de 70% em todas as categorias avaliadas até o momento! Mantenha a prática revisando as questões desafiadoras.</p>';
+        }
+      } else {
+        planContainer.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+        planContainer.style.background = 'rgba(239, 68, 68, 0.08)';
+        let listHtml = '<ul style="padding-left: 18px; line-height: 1.55; margin-top: 6px;">';
+        weakTopics.forEach(item => {
+          listHtml += `
+            <li style="margin-bottom: 7px; color: #f1f5f9; font-size: 0.9rem;">
+              <strong>${item.category}</strong> (Aproveitamento: <span style="color: #f87171; font-weight: bold;">${item.percent}%</span> — ${item.correct}/${item.total}):
+              <br><span style="color: #cbd5e1;">Recomendação: Estudar detalhadamente o <strong>${item.chapter}</strong> do Manual Acadêmico. Focar em algoritmos fundamentais, condições de falha e trade-offs arquiteturais.</span>
+            </li>
+          `;
+        });
+        listHtml += '</ul>';
+        planList.innerHTML = listHtml;
+      }
+    }
+
+    function scrollToDiagnosis() {
+      const resSection = document.getElementById('results-section');
+      resSection.style.display = 'block';
+      updateDiagnostic();
+      closeSidebarMobile();
+      resSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function applyCategoryFilter(catName) {
+      currentFilter = catName;
+
+      // Update button styles in sidebar
+      const items = document.querySelectorAll('.filter-item');
+      items.forEach(btn => {
+        if (catName === 'all' && btn.innerText.includes('Todas')) {
+          btn.classList.add('active');
+        } else if (btn.innerText.includes(catName.split(' ')[0]) || 
+                   (catName === 'Fundamentos & Modelos Temporais' && btn.innerText.includes('Fundamentos')) ||
+                   (catName === 'Taxonomia & Paradigmas' && btn.innerText.includes('Taxonomia')) ||
+                   (catName === 'Arquiteturas de Software' && btn.innerText.includes('Arquiteturas')) ||
+                   (catName === 'Processos, Threads & Servidores' && btn.innerText.includes('Processos')) ||
+                   (catName === 'Comunicação, RPC & Mensageria' && btn.innerText.includes('Comunicação')) ||
+                   (catName === 'Multicast & Algoritmos Epidêmicos' && btn.innerText.includes('Multicast')) ||
+                   (catName === 'Nomenclatura & DNS' && btn.innerText.includes('Nomenclatura')) ||
+                   (catName === 'DHT Chord & Teorema CAP' && btn.innerText.includes('DHT'))) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      closeSidebarMobile();
+      renderQuestions();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function filterOnlyWrong() {
+      currentFilter = 'only_wrong';
+      const items = document.querySelectorAll('.filter-item');
+      items.forEach(btn => btn.classList.remove('active'));
+      closeSidebarMobile();
+      renderQuestions();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetQuiz() {
+      if (confirm('Deseja realmente reiniciar todo o simulado e zerar suas respostas?')) {
+        for (let k in userAnswers) delete userAnswers[k];
+        currentFilter = 'all';
+        document.getElementById('results-section').style.display = 'none';
+        applyCategoryFilter('all');
+        updateLiveStats();
+        closeSidebarMobile();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      renderQuestions();
+    });
+  </script>
+</body>
+</html>
